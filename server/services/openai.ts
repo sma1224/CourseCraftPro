@@ -149,30 +149,51 @@ Please create a detailed, professional course outline with multiple modules, cle
 }
 
 export async function enhanceOutlineSection(
-  sectionContent: string,
-  context: string
-): Promise<string> {
+  outline: GeneratedCourseOutline,
+  prompt: string,
+  section: string = "module",
+  moduleIndex: number = 0
+): Promise<GeneratedCourseOutline> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are an expert instructional designer. Enhance and expand the given course section with more detail, practical examples, and engaging activities while maintaining the original structure and intent."
+          content: `You are an expert instructional designer. Based on the user's prompt, enhance the course outline by:
+          - Adding new modules, lessons, or subsections as requested
+          - Modifying existing content to match the user's vision
+          - Removing content if requested
+          - Improving quality and engagement
+          
+          Always respond with a complete JSON outline in the same format as the input, maintaining all required fields.`
         },
         {
           role: "user",
-          content: `Context: ${context}\n\nSection to enhance:\n${sectionContent}\n\nPlease provide an enhanced version with more detail, practical examples, and specific activities.`
+          content: `Current course outline:
+${JSON.stringify(outline, null, 2)}
+
+User request: ${prompt}
+
+Please provide the enhanced course outline as a complete JSON object with the same structure.`
         }
       ],
       temperature: 0.6,
-      max_tokens: 1500,
+      max_tokens: 4000,
+      response_format: { type: "json_object" }
     });
 
-    return response.choices[0].message.content || sectionContent;
+    const enhancedOutline = JSON.parse(response.choices[0].message.content || "{}");
+    
+    // Validate that the enhanced outline has the required structure
+    if (!enhancedOutline.title || !enhancedOutline.modules || !Array.isArray(enhancedOutline.modules)) {
+      throw new Error("Invalid enhanced outline structure");
+    }
+
+    return enhancedOutline as GeneratedCourseOutline;
   } catch (error) {
     console.error("Error enhancing outline section:", error);
-    throw new Error(`Failed to enhance section: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to enhance outline: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

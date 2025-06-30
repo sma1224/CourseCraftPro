@@ -246,6 +246,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI-powered outline enhancement
+  app.post('/api/enhance-outline', isAuthenticated, async (req: any, res) => {
+    try {
+      const { outline, prompt, section, moduleIndex } = req.body;
+      
+      const enhancedOutline = await enhanceOutlineSection(outline, prompt, section, moduleIndex);
+      res.json(enhancedOutline);
+    } catch (error) {
+      console.error("Error enhancing outline:", error);
+      res.status(500).json({ message: "Failed to enhance outline" });
+    }
+  });
+
   // Course outline routes
   app.post('/api/projects/:projectId/outlines', isAuthenticated, async (req: any, res) => {
     try {

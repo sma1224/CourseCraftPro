@@ -12,6 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { exportOutlineAsMarkdown, downloadMarkdownFile } from "@/lib/exportUtils";
 import { 
   FileText, 
@@ -28,7 +30,11 @@ import {
   BookOpen,
   Link,
   BarChart,
-  X
+  X,
+  Plus,
+  Trash2,
+  Sparkles,
+  Send
 } from "lucide-react";
 
 interface OutlineViewerModalProps {
@@ -89,6 +95,8 @@ export default function OutlineViewerModal({
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [editedOutline, setEditedOutline] = useState(outline);
+  const [showAIPrompt, setShowAIPrompt] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const { toast } = useToast();
 
   const getActivityIcon = (format: string) => {
@@ -186,6 +194,144 @@ export default function OutlineViewerModal({
     }));
   };
 
+  const addNewModule = () => {
+    const newModule = {
+      title: "New Module",
+      duration: "2 hours",
+      description: "Module description",
+      learningObjectives: ["Learning objective"],
+      lessons: [{
+        title: "New Lesson",
+        duration: "30 minutes",
+        description: "Lesson description",
+        activities: ["Activity"],
+        format: ["Lecture"]
+      }],
+      activities: [{
+        type: "Assignment",
+        title: "Module Assignment",
+        description: "Assignment description"
+      }],
+      resources: [{
+        type: "Reading",
+        title: "Required Reading",
+        description: "Resource description"
+      }]
+    };
+    
+    setEditedOutline(prev => ({
+      ...prev,
+      modules: [...prev.modules, newModule]
+    }));
+    
+    toast({
+      title: "Module Added",
+      description: "New module added. You can now edit its content.",
+    });
+  };
+
+  const deleteModule = (moduleIndex: number) => {
+    if (editedOutline.modules.length <= 1) {
+      toast({
+        title: "Cannot Delete",
+        description: "A course must have at least one module.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setEditedOutline(prev => ({
+      ...prev,
+      modules: prev.modules.filter((_, index) => index !== moduleIndex)
+    }));
+    
+    // Adjust selected module if needed
+    if (selectedModuleIndex >= editedOutline.modules.length - 1) {
+      setSelectedModuleIndex(Math.max(0, editedOutline.modules.length - 2));
+    }
+    
+    toast({
+      title: "Module Deleted",
+      description: "Module has been removed from the course.",
+    });
+  };
+
+  const addNewLesson = (moduleIndex: number) => {
+    const newLesson = {
+      title: "New Lesson",
+      duration: "30 minutes",
+      description: "Lesson description",
+      activities: ["Activity"],
+      format: ["Lecture"]
+    };
+    
+    setEditedOutline(prev => ({
+      ...prev,
+      modules: prev.modules.map((module, index) => 
+        index === moduleIndex ? {
+          ...module,
+          lessons: [...module.lessons, newLesson]
+        } : module
+      )
+    }));
+    
+    toast({
+      title: "Lesson Added",
+      description: "New lesson added to the module.",
+    });
+  };
+
+  const deleteLesson = (moduleIndex: number, lessonIndex: number) => {
+    setEditedOutline(prev => ({
+      ...prev,
+      modules: prev.modules.map((module, index) => 
+        index === moduleIndex ? {
+          ...module,
+          lessons: module.lessons.filter((_, lIndex) => lIndex !== lessonIndex)
+        } : module
+      )
+    }));
+    
+    toast({
+      title: "Lesson Deleted",
+      description: "Lesson has been removed from the module.",
+    });
+  };
+
+  // AI-powered editing mutation
+  const aiEditMutation = useMutation({
+    mutationFn: async (prompt: string) => {
+      const response = await apiRequest("POST", "/api/enhance-outline", {
+        outline: editedOutline,
+        prompt: prompt,
+        section: "module",
+        moduleIndex: selectedModuleIndex
+      });
+      return await response.json();
+    },
+    onSuccess: (enhancedOutline) => {
+      setEditedOutline(enhancedOutline);
+      setAiPrompt("");
+      setShowAIPrompt(false);
+      toast({
+        title: "AI Enhancement Complete",
+        description: "Your outline has been enhanced based on your prompt.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Enhancement Failed",
+        description: "Failed to enhance outline. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAIPromptSubmit = () => {
+    if (!aiPrompt.trim()) return;
+    aiEditMutation.mutate(aiPrompt);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
@@ -218,6 +364,15 @@ export default function OutlineViewerModal({
             <div className="flex items-center space-x-3">
               {editMode ? (
                 <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowAIPrompt(!showAIPrompt)}
+                    className="flex items-center gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    AI Enhance
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -263,13 +418,56 @@ export default function OutlineViewerModal({
           </div>
         </DialogHeader>
 
+        {/* AI Prompt Interface */}
+        {showAIPrompt && editMode && (
+          <div className="border-b bg-blue-50 dark:bg-blue-900/20 p-4">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-blue-600" />
+              <div className="flex-1">
+                <Input
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="Ask AI to enhance this outline... e.g., 'Add more practical exercises' or 'Make lessons more interactive'"
+                  className="w-full"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAIPromptSubmit()}
+                />
+              </div>
+              <Button
+                onClick={handleAIPromptSubmit}
+                disabled={!aiPrompt.trim() || aiEditMutation.isPending}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {aiEditMutation.isPending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex h-[calc(95vh-120px)]">
           {/* Sidebar Navigation */}
           <div className="w-80 border-r bg-gray-50 dark:bg-gray-900 overflow-y-auto custom-scrollbar">
             <div className="p-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Course Structure</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Course Structure</h3>
+                {editMode && (
+                  <Button
+                    onClick={addNewModule}
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1 text-xs"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Module
+                  </Button>
+                )}
+              </div>
               <div className="space-y-2">
-                {outline.modules.map((module, index) => (
+                {(editMode ? editedOutline.modules : outline.modules).map((module, index) => (
                   <div
                     key={index}
                     className={`rounded-lg p-3 border cursor-pointer transition-all ${
@@ -280,16 +478,31 @@ export default function OutlineViewerModal({
                     onClick={() => setSelectedModuleIndex(index)}
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`font-medium ${
-                        selectedModuleIndex === index ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-white'
-                      }`}>
-                        Module {index + 1}: {module.title}
-                      </span>
-                      <span className={`text-xs ${
-                        selectedModuleIndex === index ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {module.duration}
-                      </span>
+                      <div className="flex-1">
+                        <span className={`font-medium ${
+                          selectedModuleIndex === index ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-white'
+                        }`}>
+                          Module {index + 1}: {module.title}
+                        </span>
+                        <div className={`text-xs ${
+                          selectedModuleIndex === index ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                        }`}>
+                          {module.duration}
+                        </div>
+                      </div>
+                      {editMode && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteModule(index);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                     <ul className={`mt-2 space-y-1 text-sm ${
                       selectedModuleIndex === index ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'
@@ -388,7 +601,20 @@ export default function OutlineViewerModal({
 
                 {/* Lessons */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Lesson Breakdown</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Lesson Breakdown</h3>
+                    {editMode && (
+                      <Button
+                        onClick={() => addNewLesson(selectedModuleIndex)}
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Lesson
+                      </Button>
+                    )}
+                  </div>
                   <div className="space-y-4">
                     {selectedModule.lessons.map((lesson, index) => (
                       <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -408,6 +634,14 @@ export default function OutlineViewerModal({
                                 className="w-24 text-sm"
                                 placeholder="Duration"
                               />
+                              <Button
+                                onClick={() => deleteLesson(selectedModuleIndex, index)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                             <Textarea
                               value={lesson.description}
