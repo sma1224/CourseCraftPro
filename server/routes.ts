@@ -159,10 +159,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const projectId = parseInt(req.params.projectId);
       
+      console.log(`Creating outline for project ${projectId}, user ${userId}`);
+      
       // Verify project ownership
       const project = await storage.getProject(projectId);
       if (!project || project.userId !== userId) {
+        console.log("Access denied: project not found or not owned by user");
         return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Mark any existing outlines as inactive
+      const existingOutlines = await storage.getProjectOutlines(projectId);
+      for (const existing of existingOutlines) {
+        await storage.updateCourseOutline(existing.id, { isActive: false });
       }
       
       const outlineData = insertCourseOutlineSchema.parse({
@@ -171,7 +180,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       });
       
+      console.log("Creating outline with data:", { title: outlineData.title, projectId });
       const outline = await storage.createCourseOutline(outlineData);
+      console.log("Outline created successfully:", outline.id);
+      
       res.json(outline);
     } catch (error) {
       console.error("Error creating course outline:", error);

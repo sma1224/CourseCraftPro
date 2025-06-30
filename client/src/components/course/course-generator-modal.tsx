@@ -130,12 +130,25 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
       // Save the outline to the project
       if (generatedOutline) {
         try {
-          await apiRequest("POST", `/api/projects/${project.id}/outlines`, {
+          console.log("Saving outline for project:", project.id);
+          const outlineResponse = await apiRequest("POST", `/api/projects/${project.id}/outlines`, {
             title: generatedOutline.title,
             content: generatedOutline,
           });
+          
+          if (outlineResponse.ok) {
+            const savedOutline = await outlineResponse.json();
+            console.log("Outline saved successfully:", savedOutline.id);
+          } else {
+            throw new Error("Failed to save outline");
+          }
         } catch (error) {
           console.error("Failed to save outline:", error);
+          toast({
+            title: "Warning",
+            description: "Project created but outline save failed. You can try saving again from the dashboard.",
+            variant: "destructive",
+          });
         }
       }
       
