@@ -100,6 +100,8 @@ export default function VoiceChat({
   };
 
   const handleWebSocketMessage = (data: any) => {
+    console.log("Received WebSocket message:", data.type, data.text?.substring(0, 50));
+    
     switch (data.type) {
       case 'transcript':
         addToConversation('user', data.text);
@@ -109,19 +111,27 @@ export default function VoiceChat({
         break;
       
       case 'response':
+        console.log("Received AI response:", data.text?.substring(0, 50));
         addToConversation('assistant', data.text);
         if (data.audio) {
+          console.log("Playing audio response");
           playAudioResponse(data.audio);
+        } else {
+          console.log("No audio in response");
         }
         break;
       
       case 'error':
+        console.error("Voice chat error:", data.message);
         toast({
           title: "Voice Chat Error",
           description: data.message,
           variant: "destructive",
         });
         break;
+        
+      default:
+        console.log("Unknown message type:", data.type);
     }
   };
 
@@ -139,10 +149,21 @@ export default function VoiceChat({
     if (isMuted) return;
     
     try {
+      console.log("Playing audio response, data length:", audioData.length);
       // Create audio element and play response
       const audio = new Audio(`data:audio/wav;base64,${audioData}`);
       audioElementRef.current = audio;
-      audio.play();
+      
+      audio.oncanplaythrough = () => {
+        console.log("Audio ready to play");
+        audio.play().catch(e => console.error("Audio play failed:", e));
+      };
+      
+      audio.onerror = (e) => {
+        console.error("Audio error:", e);
+      };
+      
+      audio.load();
     } catch (error) {
       console.error('Error playing audio response:', error);
     }
@@ -185,6 +206,7 @@ export default function VoiceChat({
           const reader = new FileReader();
           reader.onload = () => {
             const base64Audio = (reader.result as string).split(',')[1];
+            console.log("Sending audio data, size:", base64Audio.length);
             wsRef.current?.send(JSON.stringify({
               type: 'audio',
               data: base64Audio
@@ -192,15 +214,22 @@ export default function VoiceChat({
           };
           reader.readAsDataURL(audioBlob);
         }
+        setIsRecording(false);
       };
       
-      // Record for a reasonable duration (3 seconds)
-      mediaRecorder.start();
-      setTimeout(() => {
+      // Start recording and store reference for manual stop
+      const recordingTimeout = setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
         }
       }, 3000);
+      
+      // Store cleanup function
+      (mediaRecorder as any).cleanup = () => {
+        clearTimeout(recordingTimeout);
+      };
+      
+      mediaRecorder.start();
       
     } catch (error) {
       console.error('Error starting recording:', error);

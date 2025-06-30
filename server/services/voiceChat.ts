@@ -154,6 +154,7 @@ export class VoiceChatService {
     if (session.isProcessing) return;
     
     session.isProcessing = true;
+    console.log(`Processing text message: "${text}"`);
     
     try {
       // Add user message to conversation history
@@ -162,6 +163,7 @@ export class VoiceChatService {
         content: text
       });
 
+      console.log('Generating AI response...');
       // Generate AI response using OpenAI Chat Completions
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -186,6 +188,7 @@ Keep responses conversational, helpful, and focused on course creation. If users
       });
 
       const aiResponse = response.choices[0].message.content || "I didn't understand that. Could you please rephrase?";
+      console.log(`AI Response generated: ${aiResponse.substring(0, 100)}...`);
       
       // Add AI response to conversation history
       session.conversationHistory.push({
@@ -193,6 +196,7 @@ Keep responses conversational, helpful, and focused on course creation. If users
         content: aiResponse
       });
 
+      console.log('Generating speech...');
       // Generate speech from text using OpenAI TTS
       const speechResponse = await openai.audio.speech.create({
         model: "tts-1",
@@ -204,6 +208,7 @@ Keep responses conversational, helpful, and focused on course creation. If users
       // Convert speech to base64
       const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
       const audioBase64 = audioBuffer.toString('base64');
+      console.log(`Audio generated, size: ${audioBase64.length} characters`);
 
       // Send response with audio
       this.sendMessage(session.ws, {
@@ -211,6 +216,8 @@ Keep responses conversational, helpful, and focused on course creation. If users
         text: aiResponse,
         audio: audioBase64
       });
+      
+      console.log('Response sent to client');
 
     } catch (error) {
       console.error('Error generating AI response:', error);
