@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { exportOutlineAsMarkdown, downloadMarkdownFile } from "@/lib/exportUtils";
 import { 
@@ -73,7 +75,7 @@ interface OutlineViewerModalProps {
       description?: string;
     }>;
   };
-  onSave: () => void;
+  onSave: (editedOutline?: any) => void;
   isSaving: boolean;
 }
 
@@ -85,6 +87,8 @@ export default function OutlineViewerModal({
   isSaving 
 }: OutlineViewerModalProps) {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
+  const [editMode, setEditMode] = useState(false);
+  const [editedOutline, setEditedOutline] = useState(outline);
   const { toast } = useToast();
 
   const getActivityIcon = (format: string) => {
@@ -113,12 +117,13 @@ export default function OutlineViewerModal({
     }
   };
 
-  const selectedModule = outline.modules[selectedModuleIndex];
+  const selectedModule = editMode ? editedOutline.modules[selectedModuleIndex] : outline.modules[selectedModuleIndex];
 
   const handleExportMarkdown = () => {
     try {
-      const markdownContent = exportOutlineAsMarkdown(outline);
-      const filename = outline.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const outlineToExport = editMode ? editedOutline : outline;
+      const markdownContent = exportOutlineAsMarkdown(outlineToExport);
+      const filename = outlineToExport.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       downloadMarkdownFile(markdownContent, filename);
       
       toast({
@@ -134,25 +139,123 @@ export default function OutlineViewerModal({
     }
   };
 
+  const handleEditToggle = () => {
+    if (editMode) {
+      // Reset edited outline to original when canceling edit
+      setEditedOutline(outline);
+    }
+    setEditMode(!editMode);
+  };
+
+  const handleSaveEdits = () => {
+    onSave(editedOutline);
+    setEditMode(false);
+    toast({
+      title: "Changes Saved",
+      description: "Your outline updates have been saved successfully",
+    });
+  };
+
+  const updateOutlineField = (field: string, value: any) => {
+    setEditedOutline(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const updateModuleField = (moduleIndex: number, field: string, value: any) => {
+    setEditedOutline(prev => ({
+      ...prev,
+      modules: prev.modules.map((module, index) => 
+        index === moduleIndex ? { ...module, [field]: value } : module
+      )
+    }));
+  };
+
+  const updateLessonField = (moduleIndex: number, lessonIndex: number, field: string, value: any) => {
+    setEditedOutline(prev => ({
+      ...prev,
+      modules: prev.modules.map((module, mIndex) => 
+        mIndex === moduleIndex ? {
+          ...module,
+          lessons: module.lessons.map((lesson, lIndex) =>
+            lIndex === lessonIndex ? { ...lesson, [field]: value } : lesson
+          )
+        } : module
+      )
+    }));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
         <DialogHeader className="p-6 border-b">
           <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-2xl font-bold">{outline.title}</DialogTitle>
-              <p className="text-gray-600 mt-1">{outline.description}</p>
+            <div className="flex-1">
+              {editMode ? (
+                <div className="space-y-2">
+                  <Input
+                    value={editedOutline.title}
+                    onChange={(e) => updateOutlineField('title', e.target.value)}
+                    className="text-2xl font-bold border-0 px-0 focus:ring-0 focus:border-b-2 focus:border-blue-500"
+                    placeholder="Course title"
+                  />
+                  <Textarea
+                    value={editedOutline.description}
+                    onChange={(e) => updateOutlineField('description', e.target.value)}
+                    className="text-gray-600 border-0 px-0 resize-none focus:ring-0 focus:border-b-2 focus:border-blue-500"
+                    placeholder="Course description"
+                    rows={2}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <DialogTitle className="text-2xl font-bold">{outline.title}</DialogTitle>
+                  <p className="text-gray-600 mt-1">{outline.description}</p>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="course-secondary-btn"
-                onClick={handleExportMarkdown}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export MD
-              </Button>
+              {editMode ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleEditToggle}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={handleSaveEdits}
+                    disabled={isSaving}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleEditToggle}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="course-secondary-btn"
+                    onClick={handleExportMarkdown}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export MD
+                  </Button>
+                </>
+              )}
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="h-5 w-5" />
               </Button>
@@ -209,24 +312,64 @@ export default function OutlineViewerModal({
             <div className="p-6">
               {/* Module Header */}
               <div className="bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
-                <h2 className="text-xl font-bold text-blue-900 dark:text-blue-200 mb-3">
-                  Module {selectedModuleIndex + 1}: {selectedModule.title}
-                </h2>
-                <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300 mb-4">
-                  <span className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    Duration: {selectedModule.duration}
-                  </span>
-                  <span className="flex items-center">
-                    <Users className="h-4 w-4 mr-1" />
-                    Target: {outline.targetAudience}
-                  </span>
-                  <span className="flex items-center">
-                    <Target className="h-4 w-4 mr-1" />
-                    Format: {outline.courseType}
-                  </span>
-                </div>
-                <p className="text-blue-800 dark:text-blue-200">{selectedModule.description}</p>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <Input
+                      value={selectedModule.title}
+                      onChange={(e) => updateModuleField(selectedModuleIndex, 'title', e.target.value)}
+                      className="text-xl font-bold bg-transparent border-0 px-0 focus:ring-0 focus:border-b-2 focus:border-blue-500 text-blue-900 dark:text-blue-200"
+                      placeholder="Module title"
+                    />
+                    <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        Duration: 
+                        <Input
+                          value={selectedModule.duration}
+                          onChange={(e) => updateModuleField(selectedModuleIndex, 'duration', e.target.value)}
+                          className="ml-2 w-20 h-6 text-xs bg-transparent border-0 px-1 focus:ring-0 focus:border-b focus:border-blue-500"
+                          placeholder="Duration"
+                        />
+                      </div>
+                      <span className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        Target: {outline.targetAudience}
+                      </span>
+                      <span className="flex items-center">
+                        <Target className="h-4 w-4 mr-1" />
+                        Format: {outline.courseType}
+                      </span>
+                    </div>
+                    <Textarea
+                      value={selectedModule.description}
+                      onChange={(e) => updateModuleField(selectedModuleIndex, 'description', e.target.value)}
+                      className="bg-transparent border-0 px-0 resize-none focus:ring-0 focus:border-b-2 focus:border-blue-500 text-blue-800 dark:text-blue-200"
+                      placeholder="Module description"
+                      rows={3}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <h2 className="text-xl font-bold text-blue-900 dark:text-blue-200 mb-3">
+                      Module {selectedModuleIndex + 1}: {selectedModule.title}
+                    </h2>
+                    <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300 mb-4">
+                      <span className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        Duration: {selectedModule.duration}
+                      </span>
+                      <span className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        Target: {outline.targetAudience}
+                      </span>
+                      <span className="flex items-center">
+                        <Target className="h-4 w-4 mr-1" />
+                        Format: {outline.courseType}
+                      </span>
+                    </div>
+                    <p className="text-blue-800 dark:text-blue-200">{selectedModule.description}</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">
@@ -249,21 +392,61 @@ export default function OutlineViewerModal({
                   <div className="space-y-4">
                     {selectedModule.lessons.map((lesson, index) => (
                       <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                          {selectedModuleIndex + 1}.{index + 1} {lesson.title} ({lesson.duration})
-                        </h4>
-                        <p className="text-gray-600 dark:text-gray-400 mb-3">{lesson.description}</p>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                          {lesson.format.map((format, formatIndex) => {
-                            const IconComponent = getActivityIcon(format);
-                            return (
-                              <span key={formatIndex} className="flex items-center">
-                                <IconComponent className="h-4 w-4 mr-1" />
-                                {format}
-                              </span>
-                            );
-                          })}
-                        </div>
+                        {editMode ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-500">{selectedModuleIndex + 1}.{index + 1}</span>
+                              <Input
+                                value={lesson.title}
+                                onChange={(e) => updateLessonField(selectedModuleIndex, index, 'title', e.target.value)}
+                                className="flex-1 font-medium"
+                                placeholder="Lesson title"
+                              />
+                              <Input
+                                value={lesson.duration}
+                                onChange={(e) => updateLessonField(selectedModuleIndex, index, 'duration', e.target.value)}
+                                className="w-24 text-sm"
+                                placeholder="Duration"
+                              />
+                            </div>
+                            <Textarea
+                              value={lesson.description}
+                              onChange={(e) => updateLessonField(selectedModuleIndex, index, 'description', e.target.value)}
+                              className="text-gray-600 dark:text-gray-400 resize-none"
+                              placeholder="Lesson description"
+                              rows={2}
+                            />
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                              {lesson.format.map((format, formatIndex) => {
+                                const IconComponent = getActivityIcon(format);
+                                return (
+                                  <span key={formatIndex} className="flex items-center">
+                                    <IconComponent className="h-4 w-4 mr-1" />
+                                    {format}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                              {selectedModuleIndex + 1}.{index + 1} {lesson.title} ({lesson.duration})
+                            </h4>
+                            <p className="text-gray-600 dark:text-gray-400 mb-3">{lesson.description}</p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                              {lesson.format.map((format, formatIndex) => {
+                                const IconComponent = getActivityIcon(format);
+                                return (
+                                  <span key={formatIndex} className="flex items-center">
+                                    <IconComponent className="h-4 w-4 mr-1" />
+                                    {format}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

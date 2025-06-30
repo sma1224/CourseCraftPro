@@ -33,6 +33,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [showCourseGenerator, setShowCourseGenerator] = useState(false);
   const [selectedOutline, setSelectedOutline] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showOutlineViewer, setShowOutlineViewer] = useState(false);
 
   // Redirect to login if not authenticated
@@ -65,8 +66,10 @@ export default function Dashboard() {
     try {
       const response = await fetch(`/api/projects/${projectId}/outlines/active`);
       if (response.ok) {
-        const outline = await response.json();
-        setSelectedOutline(outline.content);
+        const outlineData = await response.json();
+        const project = projects.find(p => p.id === projectId);
+        setSelectedOutline(outlineData.content);
+        setSelectedProject({ ...project, outlineId: outlineData.id });
         setShowOutlineViewer(true);
       } else {
         toast({
@@ -83,6 +86,46 @@ export default function Dashboard() {
       });
     }
   };
+
+  // Save edited outline mutation
+  const saveOutlineMutation = useMutation({
+    mutationFn: async (editedOutline: any) => {
+      if (!selectedProject) throw new Error("No project selected");
+      
+      const response = await fetch(`/api/projects/${selectedProject.id}/outlines/${selectedProject.outlineId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editedOutline.title,
+          content: editedOutline,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save outline');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Outline Saved",
+        description: "Your changes have been saved successfully",
+      });
+      setShowOutlineViewer(false);
+      setSelectedOutline(null);
+      setSelectedProject(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save your changes. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -339,14 +382,19 @@ export default function Dashboard() {
           onClose={() => {
             setShowOutlineViewer(false);
             setSelectedOutline(null);
+            setSelectedProject(null);
           }}
           outline={selectedOutline}
-          onSave={() => {
-            // Outline is already saved, just close the modal
-            setShowOutlineViewer(false);
-            setSelectedOutline(null);
+          onSave={(editedOutline) => {
+            if (editedOutline) {
+              saveOutlineMutation.mutate(editedOutline);
+            } else {
+              setShowOutlineViewer(false);
+              setSelectedOutline(null);
+              setSelectedProject(null);
+            }
           }}
-          isSaving={false}
+          isSaving={saveOutlineMutation.isPending}
         />
       )}
     </div>

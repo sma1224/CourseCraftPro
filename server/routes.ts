@@ -221,6 +221,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/projects/:projectId/outlines/:outlineId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectId = parseInt(req.params.projectId);
+      const outlineId = parseInt(req.params.outlineId);
+      
+      // Verify project ownership
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updates = {
+        title: req.body.title,
+        content: req.body.content,
+      };
+      
+      const updatedOutline = await storage.updateCourseOutline(outlineId, updates);
+      res.json(updatedOutline);
+    } catch (error) {
+      console.error("Error updating course outline:", error);
+      res.status(500).json({ message: "Failed to update course outline" });
+    }
+  });
+
   // Course outline routes
   app.post('/api/projects/:projectId/outlines', isAuthenticated, async (req: any, res) => {
     try {
