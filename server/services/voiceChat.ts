@@ -234,8 +234,19 @@ export class VoiceChatService {
       // Store outline in session for summary requests
       session.lastCreatedOutline = outline;
       
-      // Get user ID from session (temporary fallback for voice sessions)
-      const userId = session.userId || 'voice-user';
+      // Get user ID from session (create anonymous user if needed)
+      let userId = session.userId;
+      if (!userId) {
+        // Create anonymous user for voice sessions
+        const anonymousUser = await storage.upsertUser({
+          id: `voice-${session.id}`,
+          email: null,
+          firstName: 'Voice',
+          lastName: 'User',
+        });
+        userId = anonymousUser.id;
+        session.userId = userId;
+      }
       
       // Create a project for this course
       const project = await storage.createProject({
@@ -258,9 +269,7 @@ export class VoiceChatService {
       const outlineUrl = `/outline/${savedOutline.id}`;
       const aiResponse = `Perfect! I've created a comprehensive course outline for "${outline.title}".
 
-Your course outline is ready at: ${outlineUrl}
-
-This includes ${outline.modules.length} modules with detailed lessons, activities, and assessments. You can edit and customize everything on the outline page.
+Your course outline is ready to view and edit at the outline page. This includes ${outline.modules.length} modules with detailed lessons, activities, and assessments.
 
 Would you like me to provide a quick voice summary of the main topics and structure?`;
 
@@ -283,7 +292,7 @@ Would you like me to provide a quick voice summary of the main topics and struct
 
       // Send response back to client with outline URL
       this.sendMessage(session.ws, {
-        type: 'response',
+        type: 'outline_created',
         text: aiResponse,
         audio: audioBase64,
         outlineUrl: outlineUrl,

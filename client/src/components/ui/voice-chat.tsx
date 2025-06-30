@@ -151,6 +151,31 @@ export default function VoiceChat({
         setIsProcessing(false);
         break;
       
+      case 'outline_created':
+        console.log("Course outline created:", data.outlineUrl);
+        addToConversation('assistant', data.text);
+        
+        // Show prominent toast notification with outline URL
+        toast({
+          title: "Course Outline Ready!",
+          description: "Your course outline has been created and saved.",
+          action: (
+            <a href={data.outlineUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                View & Edit →
+              </Button>
+            </a>
+          ),
+          duration: 12000,
+        });
+        
+        if (data.audio && !isMuted) {
+          playAudioResponse(data.audio);
+        }
+        
+        setIsProcessing(false);
+        break;
+      
       case 'ready':
         setIsProcessing(false);
         console.log("System ready for next input");
@@ -227,6 +252,41 @@ export default function VoiceChat({
       const mediaRecorder = new MediaRecorder(mediaStreamRef.current, options);
       const audioChunks: Blob[] = [];
       
+      // Set up voice activity detection
+      const audioContext = audioContextRef.current || new AudioContext();
+      const source = audioContext.createMediaStreamSource(mediaStreamRef.current);
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 256;
+      source.connect(analyzer);
+      
+      const bufferLength = analyzer.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      let silenceStart = Date.now();
+      let speaking = false;
+      const silenceThreshold = 2000; // 2 seconds of silence to stop
+      const volumeThreshold = 30; // Minimum volume to consider as speech
+      
+      const checkAudioLevel = () => {
+        analyzer.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+        
+        if (average > volumeThreshold) {
+          speaking = true;
+          silenceStart = Date.now();
+        } else if (speaking && Date.now() - silenceStart > silenceThreshold) {
+          // Stop recording after silence threshold
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+          return;
+        }
+        
+        if (mediaRecorder.state === 'recording') {
+          requestAnimationFrame(checkAudioLevel);
+        }
+      };
+      
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunks.push(event.data);
@@ -251,21 +311,24 @@ export default function VoiceChat({
           reader.readAsDataURL(audioBlob);
         }
         setIsRecording(false);
+        source.disconnect();
+        analyzer.disconnect();
       };
       
-      // Start recording and store reference for manual stop
-      const recordingTimeout = setTimeout(() => {
+      // Start recording with maximum timeout as fallback
+      const maxRecordingTimeout = setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
         }
-      }, 3000);
+      }, 30000); // 30 seconds maximum
       
       // Store cleanup function
       (mediaRecorder as any).cleanup = () => {
-        clearTimeout(recordingTimeout);
+        clearTimeout(maxRecordingTimeout);
       };
       
       mediaRecorder.start();
+      checkAudioLevel(); // Start voice activity detection
       
     } catch (error) {
       console.error('Error starting recording:', error);
