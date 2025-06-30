@@ -20,6 +20,12 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/course-generator" component={CourseGenerator} />
+          <Route path="/outline-generator" component={CourseGenerator} />
+          <Route path="/content-creator" component={NotFound} />
+          <Route path="/video-producer" component={NotFound} />
+          <Route path="/assessment-builder" component={NotFound} />
+          <Route path="/resource-manager" component={NotFound} />
+          <Route path="/analytics" component={NotFound} />
         </>
       )}
       <Route component={NotFound} />
