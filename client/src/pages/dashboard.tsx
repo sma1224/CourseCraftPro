@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/layout/sidebar";
 import CourseGeneratorModal from "@/components/course/course-generator-modal";
+import OutlineViewerModal from "@/components/course/outline-viewer-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [showCourseGenerator, setShowCourseGenerator] = useState(false);
+  const [selectedOutline, setSelectedOutline] = useState<any>(null);
+  const [showOutlineViewer, setShowOutlineViewer] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -56,6 +59,29 @@ export default function Dashboard() {
 
   const handleOpenCourseGenerator = () => {
     setShowCourseGenerator(true);
+  };
+
+  const handleViewOutline = async (projectId: number) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/outlines/active`);
+      if (response.ok) {
+        const outline = await response.json();
+        setSelectedOutline(outline.content);
+        setShowOutlineViewer(true);
+      } else {
+        toast({
+          title: "No outline found",
+          description: "This project doesn't have a saved outline yet.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load outline. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -260,7 +286,7 @@ export default function Dashboard() {
                     return (
                       <div
                         key={project.id}
-                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
                       >
                         <div className="flex items-center space-x-4">
                           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
@@ -272,9 +298,17 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewOutline(project.id)}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            View Outline
+                          </Button>
                           {getStatusBadge(project.status)}
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {formatTimeAgo(project.updatedAt!)}
+                            {formatTimeAgo(project.updatedAt || project.createdAt || new Date().toISOString())}
                           </span>
                           <Button variant="ghost" size="sm">
                             <MoreHorizontal className="h-4 w-4" />
@@ -295,6 +329,24 @@ export default function Dashboard() {
         <CourseGeneratorModal 
           isOpen={showCourseGenerator}
           onClose={() => setShowCourseGenerator(false)}
+        />
+      )}
+
+      {/* Outline Viewer Modal */}
+      {showOutlineViewer && selectedOutline && (
+        <OutlineViewerModal 
+          isOpen={showOutlineViewer}
+          onClose={() => {
+            setShowOutlineViewer(false);
+            setSelectedOutline(null);
+          }}
+          outline={selectedOutline}
+          onSave={() => {
+            // Outline is already saved, just close the modal
+            setShowOutlineViewer(false);
+            setSelectedOutline(null);
+          }}
+          isSaving={false}
         />
       )}
     </div>

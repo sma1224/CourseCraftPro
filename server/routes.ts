@@ -153,6 +153,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Course outline management routes
+  app.post('/api/projects/:projectId/outlines', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectId = parseInt(req.params.projectId);
+      
+      // Verify project ownership
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const outlineData = insertCourseOutlineSchema.parse({
+        ...req.body,
+        projectId,
+        isActive: true
+      });
+      
+      const outline = await storage.createCourseOutline(outlineData);
+      res.json(outline);
+    } catch (error) {
+      console.error("Error creating course outline:", error);
+      res.status(500).json({ message: "Failed to create course outline" });
+    }
+  });
+
+  app.get('/api/projects/:projectId/outlines', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectId = parseInt(req.params.projectId);
+      
+      // Verify project ownership
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const outlines = await storage.getProjectOutlines(projectId);
+      res.json(outlines);
+    } catch (error) {
+      console.error("Error fetching course outlines:", error);
+      res.status(500).json({ message: "Failed to fetch course outlines" });
+    }
+  });
+
+  app.get('/api/projects/:projectId/outlines/active', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectId = parseInt(req.params.projectId);
+      
+      // Verify project ownership
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const outline = await storage.getActiveOutline(projectId);
+      if (!outline) {
+        return res.status(404).json({ message: "No active outline found" });
+      }
+      
+      res.json(outline);
+    } catch (error) {
+      console.error("Error fetching active outline:", error);
+      res.status(500).json({ message: "Failed to fetch active outline" });
+    }
+  });
+
   // Course outline routes
   app.post('/api/projects/:projectId/outlines', isAuthenticated, async (req: any, res) => {
     try {

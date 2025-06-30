@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { exportOutlineAsMarkdown, downloadMarkdownFile } from "@/lib/exportUtils";
 import { 
   FileText, 
   Download, 
@@ -83,6 +85,7 @@ export default function OutlineViewerModal({
   isSaving 
 }: OutlineViewerModalProps) {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
+  const { toast } = useToast();
 
   const getActivityIcon = (format: string) => {
     switch (format.toLowerCase()) {
@@ -112,6 +115,25 @@ export default function OutlineViewerModal({
 
   const selectedModule = outline.modules[selectedModuleIndex];
 
+  const handleExportMarkdown = () => {
+    try {
+      const markdownContent = exportOutlineAsMarkdown(outline);
+      const filename = outline.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      downloadMarkdownFile(markdownContent, filename);
+      
+      toast({
+        title: "Export Successful",
+        description: "Course outline has been exported as Markdown file",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export outline. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
@@ -122,9 +144,14 @@ export default function OutlineViewerModal({
               <p className="text-gray-600 mt-1">{outline.description}</p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" className="course-secondary-btn">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="course-secondary-btn"
+                onClick={handleExportMarkdown}
+              >
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export MD
               </Button>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="h-5 w-5" />

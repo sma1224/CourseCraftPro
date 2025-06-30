@@ -120,17 +120,29 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
     },
   });
 
-  // Create project mutation
+  // Create project and outline mutation
   const createProjectMutation = useMutation({
     mutationFn: async (projectData: any) => {
       const response = await apiRequest("POST", "/api/projects", projectData);
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (project: Project) => {
+      // Save the outline to the project
+      if (generatedOutline) {
+        try {
+          await apiRequest("POST", `/api/projects/${project.id}/outlines`, {
+            title: generatedOutline.title,
+            content: generatedOutline,
+          });
+        } catch (error) {
+          console.error("Failed to save outline:", error);
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({
         title: "Project Created",
-        description: "Your course project has been created successfully",
+        description: "Your course project and outline have been saved successfully",
       });
       onClose();
     },
