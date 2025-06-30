@@ -22,10 +22,12 @@ import {
   Brain,
   GraduationCap,
   Sparkles,
-  Layers2 as Layers
+  Layers2 as Layers,
+  MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 import type { Project } from "@shared/schema";
+import VoiceChat from "@/components/ui/voice-chat";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -35,6 +37,7 @@ export default function Dashboard() {
   const [selectedOutline, setSelectedOutline] = useState<any>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showOutlineViewer, setShowOutlineViewer] = useState(false);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -192,6 +195,14 @@ export default function Dashboard() {
               </Button>
               <Button variant="ghost" size="sm" className="p-2">
                 <Moon className="h-5 w-5" />
+              </Button>
+              <Button 
+                onClick={() => setShowVoiceChat(true)}
+                variant="outline"
+                className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-700"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Voice Chat
               </Button>
               <Button 
                 onClick={handleOpenCourseGenerator}
@@ -402,6 +413,22 @@ export default function Dashboard() {
           isSaving={saveOutlineMutation.isPending}
         />
       )}
+
+      {/* Voice Chat Modal */}
+      <VoiceChat
+        isOpen={showVoiceChat}
+        onClose={() => setShowVoiceChat(false)}
+        onTranscript={(transcript) => {
+          console.log("Voice transcript:", transcript);
+        }}
+        onConversationEnd={(conversation) => {
+          console.log("Conversation ended:", conversation);
+          toast({
+            title: "Conversation Saved",
+            description: "Your voice conversation has been recorded.",
+          });
+        }}
+      />
     </div>
   );
 }

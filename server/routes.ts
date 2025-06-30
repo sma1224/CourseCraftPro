@@ -8,6 +8,7 @@ import {
   insertCourseOutlineSchema 
 } from "@shared/schema";
 import { generateCourseOutline, enhanceOutlineSection, transcribeAudio } from "./services/openai";
+import { VoiceChatService } from "./services/voiceChat";
 import multer from "multer";
 
 // Configure multer for audio file uploads
@@ -28,6 +29,10 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Create HTTP server and initialize voice chat service
+  const httpServer = createServer(app);
+  const voiceChatService = new VoiceChatService(httpServer);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -385,6 +390,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }
