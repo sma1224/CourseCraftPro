@@ -230,7 +230,7 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
   return (
     <>
       <Dialog open={isOpen && !showOutlineViewer} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">AI Course Generator</DialogTitle>
             <DialogDescription>
