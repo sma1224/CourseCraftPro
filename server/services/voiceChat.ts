@@ -99,26 +99,54 @@ export class VoiceChatService {
       // Convert base64 audio to buffer
       const audioBuffer = Buffer.from(audioData, 'base64');
       
-      // Transcribe audio using OpenAI Whisper
-      const audioFile = new File([audioBuffer], "audio.webm", { type: "audio/webm" });
+      // Determine file extension based on buffer signature
+      let filename = "audio.webm";
+      let mimeType = "audio/webm";
+      
+      // Check for different audio format signatures
+      const header = audioBuffer.toString('hex', 0, 4);
+      if (header.startsWith('5249') || header.startsWith('7761')) { // RIFF/WAV
+        filename = "audio.wav";
+        mimeType = "audio/wav";
+      } else if (header.startsWith('6674')) { // MP4
+        filename = "audio.mp4";
+        mimeType = "audio/mp4";
+      } else if (header.startsWith('4f67')) { // OGG
+        filename = "audio.ogg";
+        mimeType = "audio/ogg";
+      }
+      
+      console.log(`Processing audio: ${filename}, size: ${audioBuffer.length} bytes`);
+      
+      // Create audio file for OpenAI Whisper
+      const audioFile = new File([audioBuffer], filename, { type: mimeType });
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
         model: "whisper-1",
+        language: "en",
+        response_format: "text"
       });
 
-      if (transcription.text.trim()) {
+      if (transcription && transcription.trim()) {
+        console.log(`Transcribed: ${transcription}`);
+        
         // Send transcription to client
         this.sendMessage(session.ws, {
           type: 'transcript',
-          text: transcription.text
+          text: transcription
         });
 
         // Process the transcribed text
-        await this.handleTextMessage(session, transcription.text);
+        await this.handleTextMessage(session, transcription);
+      } else {
+        this.sendMessage(session.ws, {
+          type: 'transcript',
+          text: '[No speech detected]'
+        });
       }
     } catch (error) {
       console.error('Error processing audio:', error);
-      this.sendError(session.ws, 'Failed to process audio');
+      this.sendError(session.ws, 'Failed to process audio. Please try speaking again.');
     }
   }
 

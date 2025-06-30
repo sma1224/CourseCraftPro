@@ -154,12 +154,34 @@ export default function VoiceChat({
     try {
       setIsRecording(true);
       
-      // Start audio recording and streaming
-      const mediaRecorder = new MediaRecorder(mediaStreamRef.current);
+      // Configure MediaRecorder with supported audio format
+      const options = {
+        mimeType: 'audio/webm;codecs=opus'
+      };
+      
+      // Fallback to other supported formats if webm is not available
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options.mimeType = 'audio/wav';
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options.mimeType = 'audio/mp4';
+        }
+      }
+      
+      const mediaRecorder = new MediaRecorder(mediaStreamRef.current, options);
+      const audioChunks: Blob[] = [];
       
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-          // Convert audio data to base64 and send
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        if (audioChunks.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+          // Combine all audio chunks into a single blob
+          const audioBlob = new Blob(audioChunks, { type: options.mimeType });
+          
+          // Convert to base64 and send
           const reader = new FileReader();
           reader.onload = () => {
             const base64Audio = (reader.result as string).split(',')[1];
@@ -168,11 +190,17 @@ export default function VoiceChat({
               data: base64Audio
             }));
           };
-          reader.readAsDataURL(event.data);
+          reader.readAsDataURL(audioBlob);
         }
       };
       
-      mediaRecorder.start(100); // Send audio chunks every 100ms
+      // Record for a reasonable duration (3 seconds)
+      mediaRecorder.start();
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, 3000);
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -182,6 +210,7 @@ export default function VoiceChat({
 
   const stopRecording = () => {
     setIsRecording(false);
+    // Recording will automatically stop and process after 3 seconds
   };
 
   const toggleMute = () => {
@@ -313,7 +342,7 @@ export default function VoiceChat({
           </div>
 
           <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
-            {isRecording ? 'Listening...' : 'Press microphone to speak'}
+            {isRecording ? 'Recording for 3 seconds...' : 'Press microphone to start 3-second recording'}
           </div>
         </CardContent>
       </Card>
