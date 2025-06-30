@@ -7,12 +7,23 @@ import { Separator } from "@/components/ui/separator";
 import { Clock, Users, BookOpen, Target, CheckCircle, FileText, Link } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function OutlineViewer() {
   const { id } = useParams();
   
   const { data: outline, isLoading, error } = useQuery({
-    queryKey: ['/api/course-outlines', id],
+    queryKey: [`/api/course-outlines/${id}`],
+    queryFn: async () => {
+      if (!id) throw new Error("No outline ID provided");
+      const response = await fetch(`/api/course-outlines/${id}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch outline: ${response.status}`);
+      }
+      return response.json();
+    },
     enabled: !!id,
   });
 
@@ -30,6 +41,9 @@ export default function OutlineViewer() {
         <Card className="max-w-md mx-auto">
           <CardContent className="pt-6 text-center">
             <p className="text-gray-600 dark:text-gray-400">Course outline not found</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {error ? `Error: ${error}` : 'No data available'}
+            </p>
             <Button onClick={() => window.history.back()} className="mt-4">
               Go Back
             </Button>
@@ -39,7 +53,23 @@ export default function OutlineViewer() {
     );
   }
 
-  const courseData = outline.content;
+  // Extract course data from the outline response
+  const courseData = outline?.content || outline;
+  
+  if (!courseData || !courseData.title) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6 text-center">
+            <p className="text-gray-600 dark:text-gray-400">Course content not available</p>
+            <Button onClick={() => window.history.back()} className="mt-4">
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
