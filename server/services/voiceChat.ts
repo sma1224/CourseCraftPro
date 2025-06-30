@@ -66,7 +66,13 @@ export class VoiceChatService {
 
     ws.on('close', () => {
       console.log(`Voice chat session ${sessionId} disconnected`);
-      this.sessions.delete(sessionId);
+      // Keep session alive for a short period to allow reconnection
+      setTimeout(() => {
+        if (this.sessions.has(sessionId)) {
+          console.log(`Cleaning up session ${sessionId} after timeout`);
+          this.sessions.delete(sessionId);
+        }
+      }, 30000); // 30 seconds
     });
 
     ws.on('error', (error) => {
@@ -224,6 +230,12 @@ Keep responses conversational, helpful, and focused on course creation. If users
       this.sendError(session.ws, 'Failed to generate response');
     } finally {
       session.isProcessing = false;
+      
+      // Send a ready signal to indicate the system is ready for the next input
+      this.sendMessage(session.ws, {
+        type: 'ready',
+        message: 'Ready for next input'
+      });
     }
   }
 

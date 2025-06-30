@@ -20,6 +20,7 @@ export default function VoiceChat({
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [conversation, setConversation] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -87,13 +88,23 @@ export default function VoiceChat({
     wsRef.current.onclose = () => {
       setIsConnected(false);
       console.log('Voice chat WebSocket disconnected');
+      
+      // Auto-reconnect if the modal is still open
+      if (isOpen) {
+        console.log('Attempting to reconnect...');
+        setTimeout(() => {
+          if (isOpen && (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)) {
+            connectWebSocket();
+          }
+        }, 2000);
+      }
     };
     
     wsRef.current.onerror = (error) => {
       console.error('WebSocket error:', error);
       toast({
         title: "Connection Error",
-        description: "Lost connection to voice chat service",
+        description: "Lost connection to voice chat service. Trying to reconnect...",
         variant: "destructive",
       });
     };
@@ -105,6 +116,7 @@ export default function VoiceChat({
     switch (data.type) {
       case 'transcript':
         addToConversation('user', data.text);
+        setIsProcessing(true);
         if (onTranscript) {
           onTranscript(data.text);
         }
@@ -119,10 +131,17 @@ export default function VoiceChat({
         } else {
           console.log("No audio in response");
         }
+        setIsProcessing(false);
+        break;
+      
+      case 'ready':
+        setIsProcessing(false);
+        console.log("System ready for next input");
         break;
       
       case 'error':
         console.error("Voice chat error:", data.message);
+        setIsProcessing(false);
         toast({
           title: "Voice Chat Error",
           description: data.message,
@@ -352,12 +371,18 @@ export default function VoiceChat({
 
             <Button
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={!isConnected}
+              disabled={!isConnected || isProcessing}
               variant={isRecording ? "destructive" : "default"}
               size="lg"
               className="rounded-full w-16 h-16"
             >
-              {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+              {isProcessing ? (
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              ) : isRecording ? (
+                <MicOff className="h-8 w-8" />
+              ) : (
+                <Mic className="h-8 w-8" />
+              )}
             </Button>
 
             <Button
@@ -371,7 +396,9 @@ export default function VoiceChat({
           </div>
 
           <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
-            {isRecording ? 'Recording for 3 seconds...' : 'Press microphone to start 3-second recording'}
+            {isProcessing ? 'AI is thinking and generating response...' : 
+             isRecording ? 'Recording for 3 seconds...' : 
+             'Press microphone to continue conversation'}
           </div>
         </CardContent>
       </Card>
