@@ -92,15 +92,21 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
   // Generate outline mutation
   const generateOutlineMutation = useMutation({
     mutationFn: async (data: CourseGenerationRequest) => {
+      console.log("Making API request with data:", data);
       const response = await apiRequest("POST", "/api/generate-outline", data);
-      return await response.json();
+      console.log("API response received:", response.status);
+      const result = await response.json();
+      console.log("Parsed response:", result);
+      return result;
     },
     onSuccess: (outline: GeneratedOutline) => {
+      console.log("Outline generation successful:", outline.title);
       setGeneratedOutline(outline);
       setShowOutlineViewer(true);
       setStep(3);
     },
     onError: (error) => {
+      console.error("Outline generation error:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -189,6 +195,7 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
       return;
     }
 
+    console.log("Starting outline generation with description:", description);
     setStep(2);
     generateOutlineMutation.mutate({ description });
   };

@@ -52,6 +52,7 @@ export interface GeneratedCourseOutline {
 
 export async function generateCourseOutline(request: CourseGenerationRequest): Promise<GeneratedCourseOutline> {
   try {
+    console.log("Starting course outline generation with request:", request);
     const systemPrompt = `You are an expert instructional designer and course creator. Your task is to create comprehensive, professional course outlines that follow pedagogical best practices.
 
 You will receive a course description and create a detailed, structured course outline. The outline should be practical, engaging, and suitable for the target audience.
