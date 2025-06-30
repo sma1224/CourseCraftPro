@@ -176,6 +176,24 @@ export default function VoiceChat({
         setIsProcessing(false);
         break;
       
+      case 'outline_updated':
+        console.log("Outline updated via voice chat");
+        addToConversation('assistant', data.text);
+        
+        // Show notification about outline update
+        toast({
+          title: "Outline Updated!",
+          description: "Your course outline has been modified based on your voice request.",
+          duration: 8000,
+        });
+        
+        if (data.audio && !isMuted) {
+          playAudioResponse(data.audio);
+        }
+        
+        setIsProcessing(false);
+        break;
+      
       case 'ready':
         setIsProcessing(false);
         console.log("System ready for next input");

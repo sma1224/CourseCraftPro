@@ -175,10 +175,14 @@ export class VoiceChatService {
 
       // Check if this looks like a course creation request
       const isCourseRequest = this.isCourseCreationRequest(text);
+      const isEditRequest = this.isEditRequest(text);
       
       if (isCourseRequest) {
         // Handle course creation
         await this.handleCourseCreation(session, text);
+      } else if (isEditRequest && session.lastCreatedOutline) {
+        // Handle outline editing
+        await this.handleOutlineEdit(session, text);
       } else {
         // Handle regular conversation
         await this.handleRegularConversation(session);
@@ -219,13 +223,25 @@ export class VoiceChatService {
     try {
       console.log('Generating course outline from voice input...');
       
-      // Create a course generation request from the voice input
+      // Extract course topic from the text
+      const topic = text.replace(/create|build|make|design|course|on|about|for/gi, '').trim();
+      const cleanTopic = topic.charAt(0).toUpperCase() + topic.slice(1);
+      
+      // Create a comprehensive course generation request matching the text-based generator
       const courseRequest = {
-        description: text,
-        title: `Course on ${text.slice(0, 50)}`,
-        targetAudience: 'General learners',
-        duration: '4-6 hours',
-        courseType: 'Self-paced online course'
+        description: `Create a comprehensive course on ${cleanTopic}. This should be a professional, well-structured course with detailed modules, lessons, activities, and assessments.`,
+        title: `${cleanTopic} Course`,
+        targetAudience: 'Intermediate learners',
+        duration: '6-8 hours',
+        courseType: 'Interactive online course',
+        learningObjectives: [
+          `Understand the fundamentals of ${cleanTopic}`,
+          `Apply practical skills in ${cleanTopic}`,
+          `Develop proficiency through hands-on exercises`
+        ],
+        prerequisites: 'Basic understanding of related concepts',
+        deliveryMethod: 'Online with interactive elements',
+        assessmentTypes: ['Quizzes', 'Practical exercises', 'Final project']
       };
 
       // Generate the outline
@@ -269,9 +285,9 @@ export class VoiceChatService {
       const outlineUrl = `/outline/${savedOutline.id}`;
       const aiResponse = `Perfect! I've created a comprehensive course outline for "${outline.title}".
 
-Your course outline is ready to view and edit at the outline page. This includes ${outline.modules.length} modules with detailed lessons, activities, and assessments.
+Your course outline is ready to view and edit. This includes ${outline.modules.length} modules with detailed lessons, activities, and assessments. You can access it through the notification that will appear.
 
-Would you like me to provide a quick voice summary of the main topics and structure?`;
+Would you like me to provide a quick voice summary of the main topics, or would you prefer to make any specific edits to the outline?`;
 
       // Add AI response to conversation history
       session.conversationHistory.push({
@@ -418,6 +434,71 @@ Keep responses conversational, helpful, and focused on course creation. If users
     });
     
     console.log('Summary sent to client');
+  }
+
+  private isEditRequest(text: string): boolean {
+    const editKeywords = [
+      'edit', 'modify', 'change', 'update', 'revise', 'alter', 'adjust',
+      'add', 'remove', 'delete', 'expand', 'shorten', 'improve',
+      'replace', 'fix', 'enhance', 'customize'
+    ];
+    
+    const lowerText = text.toLowerCase();
+    return editKeywords.some(keyword => lowerText.includes(keyword));
+  }
+
+  private async handleOutlineEdit(session: VoiceChatSession, text: string) {
+    const { enhanceOutlineSection } = await import('./openai');
+    
+    try {
+      console.log('Handling outline edit request:', text);
+      
+      // Use AI to enhance/modify the outline based on the request
+      const enhancedOutline = await enhanceOutlineSection(
+        session.lastCreatedOutline,
+        text,
+        'full_outline',
+        undefined
+      );
+      
+      // Update the stored outline
+      session.lastCreatedOutline = enhancedOutline;
+      
+      const aiResponse = `I've updated your course outline based on your request. The changes have been applied and you can review them in the outline viewer. 
+
+Would you like me to describe the specific changes I made, or do you have any other modifications in mind?`;
+      
+      // Add AI response to conversation history
+      session.conversationHistory.push({
+        role: 'assistant',
+        content: aiResponse
+      });
+
+      // Generate speech from the response
+      const speechResponse = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: "alloy",
+        input: aiResponse,
+        response_format: "wav"
+      });
+
+      const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
+      const audioBase64 = audioBuffer.toString('base64');
+
+      // Send response back to client
+      this.sendMessage(session.ws, {
+        type: 'outline_updated',
+        text: aiResponse,
+        audio: audioBase64,
+        updatedOutline: enhancedOutline
+      });
+
+      console.log('Outline edit completed and sent to client');
+
+    } catch (error) {
+      console.error('Error editing outline:', error);
+      await this.handleRegularConversation(session);
+    }
   }
 
   private createOutlineSummary(outline: any): string {
