@@ -316,11 +316,16 @@ export default function Dashboard() {
                 <div className="text-center p-8">
                   <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No courses yet</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Get started by creating your first course with AI</p>
-                  <Button onClick={handleOpenCourseGenerator} className="course-primary-btn">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Course
-                  </Button>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Get started by creating your first course with AI. Once you generate a course outline, you'll be able to edit and revise it here.</p>
+                  <div className="space-y-3">
+                    <Button onClick={handleOpenCourseGenerator} className="course-primary-btn">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Course
+                    </Button>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      After generating an outline, use the "View Outline" button to edit and revise your content
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
