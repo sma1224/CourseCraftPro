@@ -390,5 +390,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single course outline by ID (for voice chat and direct access)
+  app.get('/api/course-outlines/:id', async (req, res) => {
+    try {
+      const outlineId = parseInt(req.params.id);
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      res.json(outline);
+    } catch (error) {
+      console.error("Error fetching course outline:", error);
+      res.status(500).json({ message: "Failed to fetch course outline" });
+    }
+  });
+
   return httpServer;
 }

@@ -131,6 +131,23 @@ export default function VoiceChat({
         } else {
           console.log("No audio in response");
         }
+        
+        // Handle outline URL if present
+        if (data.outlineUrl) {
+          console.log("Outline created:", data.outlineUrl);
+          toast({
+            title: "Course Outline Created!",
+            description: "Click to view and edit your new course outline",
+            action: (
+              <a href={data.outlineUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  View Outline
+                </Button>
+              </a>
+            ),
+          });
+        }
+        
         setIsProcessing(false);
         break;
       
