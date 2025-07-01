@@ -26,20 +26,42 @@ export default function ContentCreator() {
     enabled: !!outlineId,
   });
 
+  console.log('Content Creator Debug:', { outlineId, isLoading, error, outline });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <LoadingSpinner />
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-gray-600">Loading outline {outlineId}...</p>
+        </div>
       </div>
     );
   }
 
-  if (error || !outline) {
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6 text-center">
+            <p className="text-gray-600 dark:text-gray-400">Error loading course outline</p>
+            <p className="text-sm text-red-500 mt-2">{error.toString()}</p>
+            <Button onClick={() => navigate("/dashboard")} className="mt-4">
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!outline) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="pt-6 text-center">
             <p className="text-gray-600 dark:text-gray-400">Course outline not found</p>
+            <p className="text-sm text-gray-500 mt-2">Outline ID: {outlineId}</p>
             <Button onClick={() => navigate("/dashboard")} className="mt-4">
               Return to Dashboard
             </Button>
@@ -122,11 +144,40 @@ export default function ContentCreator() {
                 
                 <Button 
                   className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: "Content Generation",
-                      description: "AI content generation coming soon for this module",
-                    });
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/generate-module-content', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          outlineId: parseInt(outlineId || '0'),
+                          moduleIndex: index,
+                          moduleTitle: module.title,
+                          moduleDescription: module.description,
+                          courseTitle: outlineData.title,
+                          courseDescription: outlineData.description,
+                        }),
+                      });
+
+                      if (response.ok) {
+                        const result = await response.json();
+                        toast({
+                          title: "Content Generated",
+                          description: `AI content created for "${module.title}"`,
+                        });
+                      } else {
+                        throw new Error('Failed to generate content');
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "Generation Error",
+                        description: "Failed to generate content. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
                   }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
