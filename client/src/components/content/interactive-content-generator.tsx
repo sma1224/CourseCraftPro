@@ -123,9 +123,11 @@ export default function InteractiveContentGenerator({
   const sendMessage = async () => {
     if (!currentMessage.trim()) return;
     
+    const messageToSend = currentMessage;
+    
     const userMessage: ChatMessage = {
       role: 'user',
-      content: currentMessage,
+      content: messageToSend,
       timestamp: new Date()
     };
     
@@ -141,7 +143,7 @@ export default function InteractiveContentGenerator({
         },
         credentials: 'include',
         body: JSON.stringify({
-          message: currentMessage,
+          message: messageToSend,
           context: {
             moduleTitle,
             moduleDescription,
@@ -157,10 +159,11 @@ export default function InteractiveContentGenerator({
       }
       
       const chatResponse = await response.json();
+      console.log('Chat response received:', chatResponse);
       
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: chatResponse.message,
+        content: chatResponse.message || 'No response received',
         timestamp: new Date()
       };
       
@@ -175,11 +178,20 @@ export default function InteractiveContentGenerator({
       }
       
     } catch (error) {
+      console.error('Chat error:', error);
       toast({
         title: "Chat Error",
         description: "Failed to process message. Please try again.",
         variant: "destructive",
       });
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your message. Please try again.',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -215,6 +227,7 @@ export default function InteractiveContentGenerator({
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Content generation successful:', data);
       setGenerationProgress(100);
       queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
       
