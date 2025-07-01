@@ -490,53 +490,123 @@ Keep responses conversational, helpful, and focused on course creation. If users
     return editKeywords.some(keyword => lowerText.includes(keyword));
   }
 
-  private async handleOutlineEdit(session: VoiceChatSession, text: string) {
-    const { enhanceOutlineSection } = await import('./openai');
+  private hasSpecificEditInstructions(text: string): boolean {
+    const lowerText = text.toLowerCase();
     
+    // Generic edit requests that need clarification
+    const genericEditPhrases = [
+      'make some edit', 'edit the outline', 'make changes', 'update it',
+      'modify it', 'change it', 'improve it', 'enhance it'
+    ];
+    
+    // Check if it's a generic request
+    if (genericEditPhrases.some(phrase => lowerText.includes(phrase))) {
+      return false;
+    }
+    
+    // Specific edit indicators
+    const specificEditIndicators = [
+      'add a', 'remove the', 'change the', 'make it', 'include',
+      'duration', 'difficulty', 'target audience', 'beginner', 'advanced',
+      'more', 'less', 'longer', 'shorter', 'activity', 'exercise',
+      'module', 'lesson', 'chapter', 'section', 'hour', 'minute'
+    ];
+    
+    return specificEditIndicators.some(indicator => lowerText.includes(indicator)) ||
+           lowerText.length > 50; // Longer text is likely to be specific
+  }
+
+  private async handleOutlineEdit(session: VoiceChatSession, text: string) {
     try {
       console.log('Handling outline edit request:', text);
       
-      // Use AI to enhance/modify the outline based on the request
-      const enhancedOutline = await enhanceOutlineSection(
-        session.lastCreatedOutline,
-        text,
-        'full_outline',
-        undefined
-      );
+      // Check if this is a specific edit request or just a general "edit" request
+      const isSpecificEdit = this.hasSpecificEditInstructions(text);
       
-      // Update the stored outline
-      session.lastCreatedOutline = enhancedOutline;
-      
-      const aiResponse = `I've updated your course outline based on your request. The changes have been applied and you can review them in the outline viewer. 
+      if (isSpecificEdit) {
+        // Process the specific edit request
+        const { enhanceOutlineSection } = await import('./openai');
+        
+        const enhancedOutline = await enhanceOutlineSection(
+          session.lastCreatedOutline,
+          text,
+          'full_outline',
+          undefined
+        );
+        
+        // Update the stored outline
+        session.lastCreatedOutline = enhancedOutline;
+        
+        const aiResponse = `I've updated your course outline based on your specific request. The changes have been applied and you can review them in the outline viewer. 
 
 Would you like me to describe the specific changes I made, or do you have any other modifications in mind?`;
-      
-      // Add AI response to conversation history
-      session.conversationHistory.push({
-        role: 'assistant',
-        content: aiResponse
-      });
+        
+        // Add AI response to conversation history
+        session.conversationHistory.push({
+          role: 'assistant',
+          content: aiResponse
+        });
 
-      // Generate speech from the response
-      const speechResponse = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: "alloy",
-        input: aiResponse,
-        response_format: "wav"
-      });
+        // Generate speech and send response
+        const speechResponse = await openai.audio.speech.create({
+          model: "tts-1",
+          voice: "alloy",
+          input: aiResponse,
+          response_format: "wav"
+        });
 
-      const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
-      const audioBase64 = audioBuffer.toString('base64');
+        const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
+        const audioBase64 = audioBuffer.toString('base64');
 
-      // Send response back to client
-      this.sendMessage(session.ws, {
-        type: 'outline_updated',
-        text: aiResponse,
-        audio: audioBase64,
-        updatedOutline: enhancedOutline
-      });
+        this.sendMessage(session.ws, {
+          type: 'outline_updated',
+          text: aiResponse,
+          audio: audioBase64,
+          updatedOutline: enhancedOutline
+        });
+      } else {
+        // Ask for specific editing instructions
+        const outlineSummary = this.createOutlineSummary(session.lastCreatedOutline);
+        
+        const aiResponse = `I'd be happy to help you edit your course outline! Here's what we currently have:
 
-      console.log('Outline edit completed and sent to client');
+${outlineSummary}
+
+What specific changes would you like me to make? For example, you could ask me to:
+- Add more modules or lessons
+- Change the duration or difficulty level
+- Include more hands-on activities
+- Adjust the target audience
+- Add specific topics or remove sections
+- Modify the learning objectives
+
+What would you like to update?`;
+        
+        // Add AI response to conversation history
+        session.conversationHistory.push({
+          role: 'assistant',
+          content: aiResponse
+        });
+
+        // Generate speech and send response
+        const speechResponse = await openai.audio.speech.create({
+          model: "tts-1",
+          voice: "alloy",
+          input: aiResponse,
+          response_format: "wav"
+        });
+
+        const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
+        const audioBase64 = audioBuffer.toString('base64');
+
+        this.sendMessage(session.ws, {
+          type: 'clarification_needed',
+          text: aiResponse,
+          audio: audioBase64
+        });
+      }
+
+      console.log('Outline edit request processed');
 
     } catch (error) {
       console.error('Error editing outline:', error);
