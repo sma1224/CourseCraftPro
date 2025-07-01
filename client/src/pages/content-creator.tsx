@@ -123,8 +123,8 @@ export default function ContentCreator() {
     );
   }
 
-  const outlineData = outline.content as any;
-  const modules = outlineData.modules || [];
+  const outlineData = outline.content ? JSON.parse(outline.content) : { modules: [] };
+  const modules = Array.isArray(outlineData.modules) ? outlineData.modules : [];
 
   // Initialize contents if not already done
   if (!moduleContents && !contentsLoading) {
@@ -132,7 +132,7 @@ export default function ContentCreator() {
   }
 
   // Calculate progress
-  const completedModules = moduleContents?.filter(m => m.status === 'complete').length || 0;
+  const completedModules = Array.isArray(moduleContents) ? moduleContents.filter((m: any) => m.status === 'complete').length : 0;
   const totalModules = modules.length;
   const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
 
@@ -235,7 +235,7 @@ export default function ContentCreator() {
                   </div>
                   
                   <div className="space-y-2">
-                    {moduleContents?.map((module, index) => (
+                    {Array.isArray(moduleContents) && moduleContents.map((module: any, index: number) => (
                       <div key={module.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(module.status)}
@@ -274,7 +274,7 @@ export default function ContentCreator() {
               <TabsContent value="overview" className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {modules.map((module: any, index: number) => {
-                    const moduleContent = moduleContents?.find(m => m.moduleIndex === index);
+                    const moduleContent = Array.isArray(moduleContents) ? moduleContents.find((m: any) => m.moduleIndex === index) : undefined;
                     return (
                       <ModuleContentCard
                         key={index}
@@ -295,7 +295,7 @@ export default function ContentCreator() {
                 <ScrollArea className="h-[600px]">
                   <div className="space-y-6">
                     {modules.map((module: any, index: number) => {
-                      const moduleContent = moduleContents?.find(m => m.moduleIndex === index);
+                      const moduleContent = Array.isArray(moduleContents) ? moduleContents.find((m: any) => m.moduleIndex === index) : undefined;
                       return (
                         <div key={index}>
                           <div className="flex items-center justify-between mb-4">

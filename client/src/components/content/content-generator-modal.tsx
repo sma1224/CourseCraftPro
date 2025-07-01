@@ -1,20 +1,18 @@
-import { useState, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Sparkles, BookOpen, Target, FileText, Users, Clock, CheckCircle } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import LoadingSpinner from "@/components/ui/loading-spinner";
-import { MessageCircle, Lightbulb, Target, BookOpen, Zap, CheckCircle, Edit2 } from "lucide-react";
 
 interface ContentGeneratorModalProps {
   isOpen: boolean;
@@ -29,565 +27,461 @@ export default function ContentGeneratorModal({
   moduleContentId, 
   outlineId 
 }: ContentGeneratorModalProps) {
-  const [step, setStep] = useState(1);
-  const [userPrompt, setUserPrompt] = useState("");
-  const [contentTypes, setContentTypes] = useState<string[]>([]);
-  const [targetEngagement, setTargetEngagement] = useState<string>("");
-  const [difficultyLevel, setDifficultyLevel] = useState<string>("");
-  const [includeTemplates, setIncludeTemplates] = useState(false);
-  const [includeExamples, setIncludeExamples] = useState(true);
-  const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState("");
+  const [contentType, setContentType] = useState("comprehensive");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [duration, setDuration] = useState("");
+  const [includeExercises, setIncludeExercises] = useState(true);
+  const [includeCaseStudies, setIncludeCaseStudies] = useState(true);
+  const [includeAssessments, setIncludeAssessments] = useState(true);
   const [generatedContent, setGeneratedContent] = useState<any>(null);
-  const [enhancementPrompt, setEnhancementPrompt] = useState("");
-  const { toast } = useToast();
+  const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
+  const [responses, setResponses] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState<'input' | 'questions' | 'generating' | 'review'>('input');
+
   const queryClient = useQueryClient();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch module content details
-  const { data: moduleContent, isLoading: moduleLoading } = useQuery({
-    queryKey: [`/api/module-content/${moduleContentId}`],
-    enabled: isOpen && !!moduleContentId,
-    retry: false,
-  });
-
-  // Fetch outline for context
-  const { data: outline } = useQuery({
-    queryKey: [`/api/course-outlines/${outlineId}`],
-    enabled: isOpen && !!outlineId,
-    retry: false,
-  });
-
-  // Generate follow-up questions mutation
-  const followUpMutation = useMutation({
-    mutationFn: async (data: { userPrompt: string; moduleIndex: number }) => {
-      const response = await apiRequest(
-        "POST", 
-        `/api/module-content/${moduleContentId}/follow-up-questions`, 
-        data
-      );
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setFollowUpQuestions(data.questions || []);
-      setStep(2);
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Failed to Generate Questions",
-        description: "Unable to generate follow-up questions. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Generate content mutation
-  const generateContentMutation = useMutation({
+  const generateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest(
-        "POST", 
-        `/api/module-content/${moduleContentId}/generate`, 
-        data
-      );
-      return response.json();
+      const response = await apiRequest('/api/content/generate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: (data) => {
-      setGeneratedContent(data.content);
-      setStep(3);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/course-outlines/${outlineId}/module-contents`] });
-      
-      toast({
-        title: "Content Generated",
-        description: "Module content has been successfully created!",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
+      if (data.followUpQuestions && data.followUpQuestions.length > 0) {
+        setFollowUpQuestions(data.followUpQuestions);
+        setResponses(new Array(data.followUpQuestions.length).fill(""));
+        setCurrentStep('questions');
+      } else {
+        setGeneratedContent(data.content);
+        setCurrentStep('review');
       }
+    },
+    onError: (error: any) => {
       toast({
-        title: "Content Generation Failed",
-        description: "Unable to generate module content. Please try again.",
+        title: "Generation Failed",
+        description: error.message || "Failed to generate content",
         variant: "destructive",
       });
     },
   });
 
-  // Enhance content mutation
-  const enhanceContentMutation = useMutation({
-    mutationFn: async (data: { enhancementPrompt: string }) => {
-      const response = await apiRequest(
-        "POST", 
-        `/api/module-content/${moduleContentId}/enhance`, 
-        data
-      );
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setGeneratedContent(data.content);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/course-outlines/${outlineId}/module-contents`] });
-      
-      toast({
-        title: "Content Enhanced",
-        description: "Module content has been successfully improved!",
+  const saveMutation = useMutation({
+    mutationFn: async (content: any) => {
+      await apiRequest(`/api/module-content/${moduleContentId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
       });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/module-content/outline/${outlineId}`] });
       toast({
-        title: "Enhancement Failed",
-        description: "Unable to enhance module content. Please try again.",
+        title: "Content Saved",
+        description: "Module content has been saved successfully",
+      });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save content",
         variant: "destructive",
       });
     },
   });
 
-  const handleInitialSubmit = () => {
-    if (!userPrompt.trim()) {
+  const handleInitialGenerate = () => {
+    if (!prompt.trim()) {
       toast({
-        title: "Content Description Required",
-        description: "Please describe what content you'd like to create for this module.",
+        title: "Missing Information",
+        description: "Please provide specific requirements for this module",
         variant: "destructive",
       });
       return;
     }
 
-    if (!moduleContent) return;
-    
-    // Generate follow-up questions
-    followUpMutation.mutate({
-      userPrompt,
-      moduleIndex: moduleContent.moduleIndex
+    setCurrentStep('generating');
+    generateMutation.mutate({
+      moduleContentId,
+      prompt,
+      contentType,
+      targetAudience,
+      duration,
+      includeExercises,
+      includeCaseStudies,
+      includeAssessments,
     });
   };
 
-  const handleGenerateContent = () => {
-    if (!moduleContent) return;
-
-    const requestData = {
-      moduleIndex: moduleContent.moduleIndex,
-      userPrompt,
-      contentTypes: contentTypes.length > 0 ? contentTypes : undefined,
-      targetEngagement: targetEngagement || undefined,
-      difficultyLevel: difficultyLevel || undefined,
-      includeTemplates,
-      includeExamples,
-    };
-
-    generateContentMutation.mutate(requestData);
+  const handleFollowUpComplete = () => {
+    setCurrentStep('generating');
+    generateMutation.mutate({
+      moduleContentId,
+      prompt,
+      contentType,
+      targetAudience,
+      duration,
+      includeExercises,
+      includeCaseStudies,
+      includeAssessments,
+      followUpResponses: responses,
+    });
   };
 
-  const handleEnhanceContent = () => {
-    if (!enhancementPrompt.trim()) {
-      toast({
-        title: "Enhancement Description Required",
-        description: "Please describe how you'd like to improve the content.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    enhanceContentMutation.mutate({ enhancementPrompt });
+  const handleSaveContent = () => {
+    saveMutation.mutate(generatedContent);
   };
 
-  const handleClose = () => {
-    setStep(1);
-    setUserPrompt("");
-    setContentTypes([]);
-    setTargetEngagement("");
-    setDifficultyLevel("");
-    setIncludeTemplates(false);
-    setIncludeExamples(true);
-    setFollowUpQuestions([]);
-    setGeneratedContent(null);
-    setEnhancementPrompt("");
-    onClose();
+  const handleResponseChange = (index: number, value: string) => {
+    const newResponses = [...responses];
+    newResponses[index] = value;
+    setResponses(newResponses);
   };
 
-  if (moduleLoading) {
-    return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <div className="flex items-center justify-center h-96">
-            <LoadingSpinner size="lg" />
+  const renderInputStep = () => (
+    <div className="space-y-6">
+      <div>
+        <Label htmlFor="prompt" className="text-sm font-medium">
+          Specific Requirements for This Module
+        </Label>
+        <Textarea
+          id="prompt"
+          placeholder="Describe what you want to focus on for this module. For example: 'Include practical examples from the healthcare industry' or 'Focus on beginner-friendly explanations with step-by-step guides'"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          className="mt-2 min-h-[100px]"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="contentType" className="text-sm font-medium">
+            Content Type
+          </Label>
+          <Select value={contentType} onValueChange={setContentType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select content type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="comprehensive">Comprehensive (Full Detail)</SelectItem>
+              <SelectItem value="concise">Concise (Key Points)</SelectItem>
+              <SelectItem value="practical">Practical (Hands-on Focus)</SelectItem>
+              <SelectItem value="theoretical">Theoretical (Concept Focus)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="targetAudience" className="text-sm font-medium">
+            Target Audience
+          </Label>
+          <Select value={targetAudience} onValueChange={setTargetAudience}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select audience" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="beginner">Beginner</SelectItem>
+              <SelectItem value="intermediate">Intermediate</SelectItem>
+              <SelectItem value="advanced">Advanced</SelectItem>
+              <SelectItem value="mixed">Mixed Levels</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Include Additional Content</Label>
+        <div className="flex gap-4 mt-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="exercises"
+              checked={includeExercises}
+              onCheckedChange={setIncludeExercises}
+            />
+            <Label htmlFor="exercises" className="text-sm">Exercises</Label>
           </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="caseStudies"
+              checked={includeCaseStudies}
+              onCheckedChange={setIncludeCaseStudies}
+            />
+            <Label htmlFor="caseStudies" className="text-sm">Case Studies</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="assessments"
+              checked={includeAssessments}
+              onCheckedChange={setIncludeAssessments}
+            />
+            <Label htmlFor="assessments" className="text-sm">Assessments</Label>
+          </div>
+        </div>
+      </div>
 
-  const outlineData = outline?.content as any;
-  const moduleData = outlineData?.modules?.[moduleContent?.moduleIndex];
-  const hasExistingContent = moduleContent?.content;
+      <Button 
+        onClick={handleInitialGenerate}
+        className="w-full"
+        disabled={generateMutation.isPending}
+      >
+        {generateMutation.isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Analyzing Requirements...
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate Content
+          </>
+        )}
+      </Button>
+    </div>
+  );
+
+  const renderQuestionsStep = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="flex items-center justify-center mb-4">
+          <div className="bg-blue-100 p-3 rounded-full">
+            <Target className="h-6 w-6 text-blue-600" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          Help Us Create Better Content
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Please answer these questions to generate more targeted and relevant content
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {followUpQuestions.map((question, index) => (
+          <div key={index}>
+            <Label className="text-sm font-medium">
+              {question}
+            </Label>
+            <Textarea
+              placeholder="Your answer..."
+              value={responses[index]}
+              onChange={(e) => handleResponseChange(index, e.target.value)}
+              className="mt-2"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <Button 
+          variant="outline" 
+          onClick={() => setCurrentStep('input')}
+          className="flex-1"
+        >
+          Back
+        </Button>
+        <Button 
+          onClick={handleFollowUpComplete}
+          className="flex-1"
+          disabled={generateMutation.isPending || responses.some(r => !r.trim())}
+        >
+          {generateMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate Content
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderGeneratingStep = () => (
+    <div className="text-center py-12">
+      <div className="flex items-center justify-center mb-6">
+        <div className="bg-blue-100 p-4 rounded-full">
+          <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
+        </div>
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        Creating Your Content
+      </h3>
+      <p className="text-gray-600 dark:text-gray-400 mb-4">
+        AI is generating comprehensive course content based on your requirements...
+      </p>
+      <div className="flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+      </div>
+    </div>
+  );
+
+  const renderReviewStep = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Generated Content Review
+        </h3>
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Complete
+        </Badge>
+      </div>
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="lessons">Lessons</TabsTrigger>
+          <TabsTrigger value="exercises">Exercises</TabsTrigger>
+          <TabsTrigger value="assessments">Assessments</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Content Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <BookOpen className="h-4 w-4 text-blue-500" />
+                  <span>{generatedContent?.lessons?.length || 0} detailed lessons</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Target className="h-4 w-4 text-green-500" />
+                  <span>{generatedContent?.exercises?.length || 0} practical exercises</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-purple-500" />
+                  <span>{generatedContent?.assessments?.length || 0} assessment questions</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="lessons">
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-3">
+              {generatedContent?.lessons?.map((lesson: any, index: number) => (
+                <Card key={index}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">{lesson.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                      Duration: {lesson.duration}
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+                      {lesson.content}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="exercises">
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-3">
+              {generatedContent?.exercises?.map((exercise: any, index: number) => (
+                <Card key={index}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">{exercise.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                      {exercise.description}
+                    </p>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Materials: {exercise.materials?.join(", ") || "None specified"}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="assessments">
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-3">
+              {generatedContent?.assessments?.map((assessment: any, index: number) => (
+                <Card key={index}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">{assessment.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Type: {assessment.type}
+                    </div>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      {assessment.questions?.length || 0} questions
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex gap-2">
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setCurrentStep('input');
+            setGeneratedContent(null);
+          }}
+          className="flex-1"
+        >
+          Regenerate
+        </Button>
+        <Button 
+          onClick={handleSaveContent}
+          className="flex-1"
+          disabled={saveMutation.isPending}
+        >
+          {saveMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Save Content
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Edit2 className="h-5 w-5" />
-            {hasExistingContent ? "Edit Module Content" : "Create Module Content"}
+            <Sparkles className="h-5 w-5 text-blue-600" />
+            AI Content Generator
           </DialogTitle>
           <DialogDescription>
-            {moduleData && (
-              <>Module {moduleContent?.moduleIndex + 1}: {moduleData.title}</>
-            )}
+            Generate comprehensive course content with AI assistance
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
-          {/* Step 1: Initial Content Description */}
-          {step === 1 && (
-            <div className="space-y-6">
-              {moduleData && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Module Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {moduleData.description}
-                    </p>
-                    {moduleData.learningObjectives && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Learning Objectives</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {moduleData.learningObjectives.map((objective: string, index: number) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {objective}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="content-prompt" className="text-base font-medium">
-                    Describe the content you want to create
-                  </Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                    Be specific about what kind of content you need, the format, and any special requirements.
-                  </p>
-                  <Textarea
-                    id="content-prompt"
-                    ref={textareaRef}
-                    placeholder="Example: Create engaging content for Module 3: Social Media Analytics. Include practical examples, step-by-step tutorials, and hands-on exercises. Make it suitable for beginners with real-world case studies."
-                    value={userPrompt}
-                    onChange={(e) => setUserPrompt(e.target.value)}
-                    className="min-h-[120px]"
-                  />
-                </div>
-
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={handleClose}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleInitialSubmit}
-                    disabled={followUpMutation.isPending}
-                  >
-                    {followUpMutation.isPending ? (
-                      <>
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Continue
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Follow-up Questions and Preferences */}
-          {step === 2 && (
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-6 pr-4">
-                {followUpQuestions.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Lightbulb className="h-5 w-5 text-yellow-500" />
-                        AI Suggestions
-                      </CardTitle>
-                      <CardDescription>
-                        Based on your description, here are some clarifying questions to create better content:
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {followUpQuestions.map((question, index) => (
-                          <div key={index} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                            <p className="text-sm text-blue-800 dark:text-blue-200">
-                              {question}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Content Preferences</CardTitle>
-                    <CardDescription>
-                      Customize the content generation to match your specific needs
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Content Types */}
-                    <div>
-                      <Label className="text-base font-medium mb-3 block">Content Types to Include</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { value: "lesson", label: "Lesson Content" },
-                          { value: "exercise", label: "Exercises" },
-                          { value: "case_study", label: "Case Studies" },
-                          { value: "assessment", label: "Assessments" },
-                          { value: "resources", label: "Resources" },
-                          { value: "activities", label: "Activities" },
-                        ].map((type) => (
-                          <div key={type.value} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={type.value}
-                              checked={contentTypes.includes(type.value)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setContentTypes([...contentTypes, type.value]);
-                                } else {
-                                  setContentTypes(contentTypes.filter(t => t !== type.value));
-                                }
-                              }}
-                            />
-                            <Label htmlFor={type.value} className="text-sm">
-                              {type.label}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Engagement Level */}
-                    <div>
-                      <Label className="text-base font-medium mb-3 block">Target Engagement Level</Label>
-                      <Select value={targetEngagement} onValueChange={setTargetEngagement}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select engagement level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low - Traditional lecture style</SelectItem>
-                          <SelectItem value="medium">Medium - Interactive with examples</SelectItem>
-                          <SelectItem value="high">High - Highly interactive and gamified</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Difficulty Level */}
-                    <div>
-                      <Label className="text-base font-medium mb-3 block">Difficulty Level</Label>
-                      <Select value={difficultyLevel} onValueChange={setDifficultyLevel}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select difficulty level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="beginner">Beginner - Basic concepts and terminology</SelectItem>
-                          <SelectItem value="intermediate">Intermediate - Some prior knowledge assumed</SelectItem>
-                          <SelectItem value="advanced">Advanced - Expert-level content</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Separator />
-
-                    {/* Additional Options */}
-                    <div className="space-y-3">
-                      <Label className="text-base font-medium">Additional Options</Label>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="templates"
-                            checked={includeTemplates}
-                            onCheckedChange={(checked) => setIncludeTemplates(!!checked)}
-                          />
-                          <Label htmlFor="templates" className="text-sm">
-                            Include downloadable templates and worksheets
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="examples"
-                            checked={includeExamples}
-                            onCheckedChange={(checked) => setIncludeExamples(!!checked)}
-                          />
-                          <Label htmlFor="examples" className="text-sm">
-                            Include practical examples and case studies
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setStep(1)}>
-                    Back
-                  </Button>
-                  <Button 
-                    onClick={handleGenerateContent}
-                    disabled={generateContentMutation.isPending}
-                  >
-                    {generateContentMutation.isPending ? (
-                      <>
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        Generating Content...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-4 w-4 mr-2" />
-                        Generate Content
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </ScrollArea>
-          )}
-
-          {/* Step 3: Generated Content Review */}
-          {step === 3 && generatedContent && (
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-6 pr-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      Content Generated Successfully
-                    </CardTitle>
-                    <CardDescription>
-                      Your module content has been created. Review and enhance as needed.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium mb-2">Content Overview</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {generatedContent.overview}
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Lessons:</span>
-                          <span className="ml-2">{generatedContent.lessons?.length || 0}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Exercises:</span>
-                          <span className="ml-2">{generatedContent.exercises?.length || 0}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Case Studies:</span>
-                          <span className="ml-2">{generatedContent.caseStudies?.length || 0}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Assessments:</span>
-                          <span className="ml-2">{generatedContent.assessments?.length || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Enhance Content</CardTitle>
-                    <CardDescription>
-                      Want to improve or modify the generated content? Describe your changes below.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Textarea
-                      placeholder="Example: Add more practical examples, include industry-specific case studies, make the exercises more challenging, etc."
-                      value={enhancementPrompt}
-                      onChange={(e) => setEnhancementPrompt(e.target.value)}
-                      className="min-h-[100px]"
-                    />
-                    <Button 
-                      onClick={handleEnhanceContent}
-                      disabled={enhanceContentMutation.isPending}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      {enhanceContentMutation.isPending ? (
-                        <>
-                          <LoadingSpinner size="sm" className="mr-2" />
-                          Enhancing...
-                        </>
-                      ) : (
-                        <>
-                          <Target className="h-4 w-4 mr-2" />
-                          Enhance Content
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setStep(2)}>
-                    Back to Preferences
-                  </Button>
-                  <Button onClick={handleClose}>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Complete
-                  </Button>
-                </div>
-              </div>
-            </ScrollArea>
-          )}
+        <div className="mt-6">
+          {currentStep === 'input' && renderInputStep()}
+          {currentStep === 'questions' && renderQuestionsStep()}
+          {currentStep === 'generating' && renderGeneratingStep()}
+          {currentStep === 'review' && renderReviewStep()}
         </div>
       </DialogContent>
     </Dialog>
