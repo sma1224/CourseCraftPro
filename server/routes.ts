@@ -144,22 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Course outline generation route
-  app.post('/api/generate-outline', isAuthenticated, async (req: any, res) => {
-    try {
-      console.log("Received outline generation request:", req.body);
-      const requestData = courseGenerationRequestSchema.parse(req.body);
-      console.log("Parsed request data:", requestData);
-      const outline = await generateCourseOutline(requestData);
-      console.log("Generated outline successfully:", outline.title);
-      res.json(outline);
-    } catch (error) {
-      console.error("Error generating course outline:", error);
-      res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Failed to generate course outline" 
-      });
-    }
-  });
+
 
   // Course outline management routes
   app.post('/api/projects/:projectId/outlines', isAuthenticated, async (req: any, res) => {
