@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, BookOpen, Edit, Plus, Eye, Home, ChevronRight } from "lucide-react";
+import { ArrowLeft, BookOpen, Edit, Plus, Eye, Home, ChevronRight, MessageSquare } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import InteractiveContentGenerator from "@/components/content/interactive-content-generator";
 
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
@@ -18,6 +19,8 @@ export default function ContentCreator() {
   const queryClient = useQueryClient();
   const [selectedModule, setSelectedModule] = useState<any>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
+  const [interactiveGeneratorOpen, setInteractiveGeneratorOpen] = useState(false);
+  const [currentModuleForGeneration, setCurrentModuleForGeneration] = useState<any>(null);
 
   const { data: outline, isLoading, error } = useQuery({
     queryKey: [`/api/course-outlines/${outlineId}`],
@@ -219,6 +222,21 @@ export default function ContentCreator() {
                           View Content
                         </Button>
                         <Button 
+                          variant="default"
+                          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                          onClick={() => {
+                            setCurrentModuleForGeneration({
+                              ...module,
+                              index,
+                              description: module.description || `Module ${index + 1} covering ${module.title.toLowerCase()}`
+                            });
+                            setInteractiveGeneratorOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Smart Generator
+                        </Button>
+                        <Button 
                           variant="outline"
                           className="w-full"
                           onClick={async () => {
@@ -263,9 +281,26 @@ export default function ContentCreator() {
                         </Button>
                       </>
                     ) : (
-                      <Button 
-                        className="w-full"
-                        onClick={async () => {
+                      <>
+                        <Button 
+                          variant="default"
+                          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                          onClick={() => {
+                            setCurrentModuleForGeneration({
+                              ...module,
+                              index,
+                              description: module.description || `Module ${index + 1} covering ${module.title.toLowerCase()}`
+                            });
+                            setInteractiveGeneratorOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Smart Generator
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="w-full"
+                          onClick={async () => {
                           try {
                             const response = await fetch('/api/generate-module-content', {
                               method: 'POST',
@@ -303,8 +338,9 @@ export default function ContentCreator() {
                         }}
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Generate Content
+                        Quick Generate
                       </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -520,6 +556,23 @@ export default function ContentCreator() {
               </div>
             </DialogContent>
           </Dialog>
+        )}
+
+        {/* Interactive Content Generator */}
+        {currentModuleForGeneration && (
+          <InteractiveContentGenerator
+            isOpen={interactiveGeneratorOpen}
+            onClose={() => {
+              setInteractiveGeneratorOpen(false);
+              setCurrentModuleForGeneration(null);
+            }}
+            moduleTitle={currentModuleForGeneration.title}
+            moduleDescription={currentModuleForGeneration.description}
+            moduleIndex={currentModuleForGeneration.index}
+            outlineId={parseInt(outlineId || '0')}
+            courseTitle={outline?.title || ''}
+            courseDescription={outline?.description || ''}
+          />
         )}
       </div>
     </div>
