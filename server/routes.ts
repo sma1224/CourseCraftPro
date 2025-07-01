@@ -393,20 +393,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: outline.title,
         description: outline.description,
         userId: userId,
-        status: 'in_progress'
+        status: 'draft'
       });
       
       const projectData = {
         title: outline.title,
         description: outline.description,
         userId: userId,
-        status: 'in_progress' as const
+        status: 'draft' as const
       };
       
       console.log('About to create project with exact data:', projectData);
-      const project = await storage.createProject(projectData);
       
-      console.log('Project created successfully:', project.id);
+      const project = await storage.createProject(projectData);
+      console.log('Project created successfully:', project);
       
       // Save the outline to the project
       console.log('Creating course outline with data:', {
@@ -434,6 +434,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error("Error generating course outline:", error);
+      console.error("Full error details:", JSON.stringify(error, null, 2));
+      if (error instanceof Error) {
+        console.error("Error stack:", error.stack);
+      }
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to generate course outline" 
       });
