@@ -194,14 +194,19 @@ export class VoiceChatService {
       const isCourseRequest = this.isCourseCreationRequest(text);
       const isEditRequest = this.isEditRequest(text);
       
-      if (isCourseRequest) {
-        // Handle course creation
-        await this.handleCourseCreation(session, text);
-      } else if (isEditRequest && session.lastCreatedOutline) {
-        // Handle outline editing
+      console.log(`Intent detection - Course: ${isCourseRequest}, Edit: ${isEditRequest}, Has outline: ${!!session.lastCreatedOutline}`);
+      
+      if (isEditRequest && session.lastCreatedOutline) {
+        // Handle outline editing (prioritize edit requests over course creation)
+        console.log('Handling as edit request');
         await this.handleOutlineEdit(session, text);
+      } else if (isCourseRequest) {
+        // Handle course creation
+        console.log('Handling as course creation request');
+        await this.handleCourseCreation(session, text);
       } else {
         // Handle regular conversation
+        console.log('Handling as regular conversation');
         await this.handleRegularConversation(session);
       }
 
@@ -220,16 +225,23 @@ export class VoiceChatService {
   }
 
   private isCourseCreationRequest(text: string): boolean {
+    const lowerText = text.toLowerCase();
+    
+    // Check for edit/modify keywords first - these should NOT be course creation
+    const editKeywords = ['edit', 'modify', 'change', 'update', 'revise', 'adjust', 'improve'];
+    if (editKeywords.some(keyword => lowerText.includes(keyword))) {
+      return false;
+    }
+    
+    // Look for explicit creation verbs with course-related topics
+    const creationVerbs = ['create', 'build', 'design', 'develop', 'make', 'plan', 'generate'];
     const courseKeywords = [
       'course', 'lesson', 'module', 'curriculum', 'training', 'learning',
       'teach', 'education', 'outline', 'syllabus', 'workshop', 'class'
     ];
     
-    const lowerText = text.toLowerCase();
-    return courseKeywords.some(keyword => lowerText.includes(keyword)) &&
-           (lowerText.includes('create') || lowerText.includes('build') || 
-            lowerText.includes('design') || lowerText.includes('develop') ||
-            lowerText.includes('make') || lowerText.includes('plan'));
+    return creationVerbs.some(verb => lowerText.includes(verb)) &&
+           courseKeywords.some(keyword => lowerText.includes(keyword));
   }
 
   private async handleCourseCreation(session: VoiceChatSession, text: string) {
@@ -240,8 +252,22 @@ export class VoiceChatService {
     try {
       console.log('Generating course outline from voice input...');
       
-      // Extract course topic from the text
-      const topic = text.replace(/create|build|make|design|course|on|about|for/gi, '').trim();
+      // Extract course topic from the text more intelligently
+      let topic = text;
+      
+      // Remove common creation phrases
+      topic = topic.replace(/^(can\s+i\s+)?(create|build|make|design|develop)\s+(a\s+)?(course\s+)?(on\s+|about\s+|for\s+)?/gi, '');
+      
+      // Remove question words and cleanup
+      topic = topic.replace(/^(what\s+is|how\s+to|please\s+)?/gi, '');
+      topic = topic.replace(/\?+$/g, ''); // Remove trailing question marks
+      topic = topic.trim();
+      
+      // If the topic is empty or too generic, use a default
+      if (!topic || topic.length < 3) {
+        topic = 'Professional Development';
+      }
+      
       const cleanTopic = topic.charAt(0).toUpperCase() + topic.slice(1);
       
       // Create a comprehensive course generation request matching the text-based generator
