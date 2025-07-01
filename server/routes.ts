@@ -512,6 +512,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get module contents for an outline
+  app.get('/api/outlines/:outlineId/module-contents', isAuthenticated, async (req, res) => {
+    try {
+      const outlineId = parseInt(req.params.outlineId);
+      const moduleContents = await storage.getOutlineModuleContents(outlineId);
+      res.json(moduleContents);
+    } catch (error) {
+      console.error('Error fetching module contents:', error);
+      res.status(500).json({ error: 'Failed to fetch module contents' });
+    }
+  });
+
+  // Update module content
+  app.patch('/api/module-content/:contentId', isAuthenticated, async (req, res) => {
+    try {
+      const contentId = parseInt(req.params.contentId);
+      const { title, content } = req.body;
+      
+      const updated = await storage.updateModuleContent(contentId, {
+        title,
+        content,
+        status: 'complete'
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating module content:', error);
+      res.status(500).json({ error: 'Failed to update module content' });
+    }
+  });
+
   // Outline enhancement route
   app.post('/api/enhance-section', isAuthenticated, async (req, res) => {
     try {
