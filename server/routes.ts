@@ -377,7 +377,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate course outline route (creates project and outline in one step)
   app.post('/api/generate-outline', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('=== OUTLINE GENERATION START ===');
+      console.log('Request user object:', req.user);
+      console.log('Request user claims:', req.user?.claims);
       const userId = req.user.claims.sub;
+      console.log('Extracted userId:', userId);
       console.log('Received outline generation request:', req.body);
       
       // Parse and validate the course generation request
