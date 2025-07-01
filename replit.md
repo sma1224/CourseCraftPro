@@ -134,12 +134,12 @@ Course Creation Suite is a comprehensive SaaS web application that transforms ho
 
 - January 1, 2025: Fixed outline history and authentication issues
   - Fixed critical issue where course outlines weren't appearing in user's project history
-  - Created unified `/api/generate-outline` endpoint that creates both project and outline
+  - Removed duplicate `/api/generate-outline` endpoint that was only generating outlines without saving projects
   - Fixed voice chat to use authenticated user ID instead of creating anonymous users
-  - Simplified course generation workflow to save projects automatically
+  - Unified course generation workflow to save both text and voice-based projects automatically
   - Added WebSocket authentication for voice chat sessions
-  - Improved intent detection for voice chat edit requests vs new course creation
-  - Voice chat functionality temporarily paused for further development
+  - Both text-based and voice-based course outlines now appear in Recent Projects list
+  - Course creation workflow now properly authenticated and saves to database consistently
 
 ## User Preferences
 
