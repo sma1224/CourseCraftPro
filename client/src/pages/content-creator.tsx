@@ -14,8 +14,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { ArrowLeft, BookOpen, Clock, Users, Target, CheckCircle, Circle, AlertCircle, Edit } from "lucide-react";
-import ModuleContentCard from "@/components/content/module-content-card";
-import ContentGeneratorModal from "@/components/content/content-generator-modal";
+// Import components will be loaded inline to avoid import issues
 
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
@@ -123,7 +122,7 @@ export default function ContentCreator() {
     );
   }
 
-  const outlineData = outline.content ? JSON.parse(outline.content) : { modules: [] };
+  const outlineData = outline?.content ? JSON.parse(outline.content) : { modules: [] };
   const modules = Array.isArray(outlineData.modules) ? outlineData.modules : [];
 
   // Initialize contents if not already done
