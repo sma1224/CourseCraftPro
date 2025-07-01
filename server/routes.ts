@@ -498,8 +498,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const moduleContent = await storage.createModuleContent({
         outlineId,
         moduleIndex,
+        title: moduleTitle,
         content: mockContent,
-        status: 'completed'
+        status: 'complete'
       });
       
       console.log('Module content generated successfully:', moduleContent.id);
