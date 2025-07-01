@@ -334,13 +334,21 @@ export default function ContentCreator() {
               <div className="space-y-6">
                 {selectedModule.content && (
                   <div className="prose max-w-none">
-                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                       <h3 className="text-lg font-semibold mb-4">Generated Content</h3>
-                      <div className="whitespace-pre-wrap text-sm">
-                        {typeof selectedModule.content.content === 'string' 
-                          ? selectedModule.content.content 
-                          : JSON.stringify(selectedModule.content.content, null, 2)
-                        }
+                      <div className="prose prose-sm max-w-none">
+                        <div 
+                          className="whitespace-pre-wrap text-sm leading-relaxed"
+                          style={{ 
+                            fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
+                            lineHeight: '1.6'
+                          }}
+                        >
+                          {typeof selectedModule.content.content === 'string' 
+                            ? selectedModule.content.content 
+                            : JSON.stringify(selectedModule.content.content, null, 2)
+                          }
+                        </div>
                       </div>
                     </div>
                     

@@ -457,54 +457,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // For now, return a success response indicating content would be generated
       // The actual AI generation will be implemented separately
-      const mockContent = {
-        title: moduleTitle,
-        overview: `Comprehensive overview of ${moduleTitle}`,
-        lessons: [
-          {
-            title: `Introduction to ${moduleTitle}`,
-            content: `Detailed content for ${moduleTitle} introduction...`,
-            duration: "30 minutes",
-            activities: ["Interactive exercise", "Knowledge check"],
-            resources: ["Reading material", "Video tutorial"]
-          }
-        ],
-        exercises: [
-          {
-            title: `${moduleTitle} Practice Exercise`,
-            description: `Hands-on exercise for ${moduleTitle}`,
-            instructions: ["Step 1: Review the material", "Step 2: Complete the exercise"],
-            materials: ["Worksheet", "Calculator"],
-            expectedOutcome: "Understanding of key concepts"
-          }
-        ],
-        assessments: [
-          {
-            type: "Quiz",
-            title: `${moduleTitle} Knowledge Check`,
-            questions: [
-              {
-                question: `What is the main concept of ${moduleTitle}?`,
-                options: ["Option A", "Option B", "Option C", "Option D"],
-                correctAnswer: "Option A",
-                explanation: "This is the correct answer because..."
-              }
-            ]
-          }
-        ]
-      };
+      const formattedContent = `# ${moduleTitle}
+
+## Overview
+This module provides a comprehensive introduction to ${moduleTitle}, covering fundamental concepts, practical applications, and hands-on exercises designed to enhance your understanding.
+
+## Learning Objectives
+By the end of this module, you will be able to:
+- Understand the core principles of ${moduleTitle}
+- Apply key concepts in practical scenarios
+- Demonstrate mastery through hands-on exercises
+- Connect theoretical knowledge to real-world applications
+
+## Lesson Content
+
+### Section 1: Introduction to ${moduleTitle}
+${moduleTitle} is a fundamental concept that plays a crucial role in understanding the broader subject matter. This section introduces the basic principles and provides the foundation for more advanced topics.
+
+**Key Concepts:**
+- Definition and importance of ${moduleTitle}
+- Historical context and development
+- Core principles and frameworks
+- Relationship to other concepts in the field
+
+**Learning Activities:**
+- Interactive concept mapping
+- Video demonstrations
+- Reading assignments
+- Discussion forums
+
+### Section 2: Practical Applications
+This section explores how ${moduleTitle} is applied in real-world scenarios, providing practical examples and case studies.
+
+**Topics Covered:**
+- Industry applications
+- Case study analysis
+- Problem-solving techniques
+- Best practices and methodologies
+
+**Hands-on Exercises:**
+- Guided practice sessions
+- Independent problem-solving
+- Group collaboration activities
+- Project-based learning
+
+### Section 3: Assessment and Review
+This final section consolidates learning through various assessment methods and provides opportunities for reflection and review.
+
+**Assessment Methods:**
+- Knowledge check quizzes
+- Practical demonstrations
+- Peer review activities
+- Self-assessment tools
+
+## Resources and Further Reading
+- Recommended textbooks and articles
+- Online tutorials and videos
+- Interactive simulations
+- Professional development resources
+
+## Summary
+This module has provided a comprehensive introduction to ${moduleTitle}, combining theoretical understanding with practical application. Continue practicing these concepts and exploring the additional resources to deepen your expertise.`;
       
       // Store the generated content in the database
       const moduleContent = await storage.createModuleContent({
         outlineId,
         moduleIndex,
         title: moduleTitle,
-        content: mockContent,
+        content: formattedContent,
         status: 'complete'
       });
       
       console.log('Module content generated successfully:', moduleContent.id);
-      res.json({ success: true, contentId: moduleContent.id, content: mockContent });
+      res.json({ success: true, contentId: moduleContent.id, content: formattedContent });
       
     } catch (error) {
       console.error("Error generating module content:", error);
