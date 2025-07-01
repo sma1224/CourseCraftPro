@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [showCourseGenerator, setShowCourseGenerator] = useState(false);
   const [selectedOutline, setSelectedOutline] = useState<any>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
@@ -70,10 +72,7 @@ export default function Dashboard() {
       const response = await fetch(`/api/projects/${projectId}/outlines/active`);
       if (response.ok) {
         const outlineData = await response.json();
-        const project = projects.find(p => p.id === projectId);
-        setSelectedOutline(outlineData.content);
-        setSelectedProject({ ...project, outlineId: outlineData.id });
-        setShowOutlineViewer(true);
+        navigate(`/outline/${outlineData.id}`);
       } else {
         toast({
           title: "No outline found",
