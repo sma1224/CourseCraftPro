@@ -132,6 +132,15 @@ Course Creation Suite is a comprehensive SaaS web application that transforms ho
   - Integrated OpenAI Live API for natural voice conversations
   - Built real-time WebSocket voice chat with speech-to-text and text-to-speech
 
+- January 1, 2025: Fixed outline history and authentication issues
+  - Fixed critical issue where course outlines weren't appearing in user's project history
+  - Created unified `/api/generate-outline` endpoint that creates both project and outline
+  - Fixed voice chat to use authenticated user ID instead of creating anonymous users
+  - Simplified course generation workflow to save projects automatically
+  - Added WebSocket authentication for voice chat sessions
+  - Improved intent detection for voice chat edit requests vs new course creation
+  - Voice chat functionality temporarily paused for further development
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

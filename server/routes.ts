@@ -374,6 +374,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate course outline route (creates project and outline in one step)
+  app.post('/api/generate-outline', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      console.log('Received outline generation request:', req.body);
+      
+      // Parse and validate the course generation request
+      const courseRequest = courseGenerationRequestSchema.parse(req.body);
+      console.log('Parsed request data:', courseRequest);
+      
+      // Generate the outline using AI
+      const outline = await generateCourseOutline(courseRequest);
+      console.log('Generated outline successfully:', outline.title);
+      
+      // Create a project for this course
+      const project = await storage.createProject({
+        title: outline.title,
+        description: outline.description,
+        userId: userId,
+        status: 'in_progress'
+      });
+      
+      // Save the outline to the project
+      const savedOutline = await storage.createCourseOutline({
+        title: outline.title,
+        projectId: project.id,
+        content: outline,
+        version: 1,
+        isActive: true
+      });
+      
+      console.log('Project and outline created successfully:', { projectId: project.id, outlineId: savedOutline.id });
+      
+      res.json({
+        ...outline,
+        projectId: project.id,
+        outlineId: savedOutline.id
+      });
+      
+    } catch (error) {
+      console.error("Error generating course outline:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate course outline" 
+      });
+    }
+  });
+
   // Outline enhancement route
   app.post('/api/enhance-section', isAuthenticated, async (req, res) => {
     try {

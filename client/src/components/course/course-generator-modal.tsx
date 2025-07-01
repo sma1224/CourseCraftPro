@@ -99,11 +99,19 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
       console.log("Parsed response:", result);
       return result;
     },
-    onSuccess: (outline: GeneratedOutline) => {
+    onSuccess: (outline: GeneratedOutline & { projectId: number; outlineId: number }) => {
       console.log("Outline generation successful:", outline.title);
       setGeneratedOutline(outline);
       setShowOutlineViewer(true);
       setStep(3);
+      
+      // Invalidate projects to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      
+      toast({
+        title: "Course Created",
+        description: "Your course project and outline have been created successfully",
+      });
     },
     onError: (error) => {
       console.error("Outline generation error:", error);
@@ -213,16 +221,8 @@ export default function CourseGeneratorModal({ isOpen, onClose }: CourseGenerato
   };
 
   const handleSaveProject = () => {
-    if (!generatedOutline) return;
-
-    createProjectMutation.mutate({
-      title: generatedOutline.title,
-      description: generatedOutline.description,
-      targetAudience: generatedOutline.targetAudience,
-      duration: generatedOutline.totalDuration,
-      courseType: generatedOutline.courseType,
-      status: "draft"
-    });
+    // Course is already saved when generated, just close the modal
+    onClose();
   };
 
   const getStepProgress = () => {

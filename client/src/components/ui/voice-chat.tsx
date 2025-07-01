@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Phone, PhoneOff, StopCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface VoiceChatProps {
   onTranscript?: (transcript: string) => void;
@@ -28,6 +29,7 @@ export default function VoiceChat({
   }>>([]);
   
   const { toast } = useToast();
+  const { user } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -79,6 +81,14 @@ export default function VoiceChat({
     wsRef.current.onopen = () => {
       setIsConnected(true);
       console.log('Voice chat WebSocket connected');
+      
+      // Send authentication information
+      if (user && (user as any).id && wsRef.current) {
+        wsRef.current.send(JSON.stringify({
+          type: 'auth',
+          userId: (user as any).id
+        }));
+      }
     };
     
     wsRef.current.onmessage = (event) => {

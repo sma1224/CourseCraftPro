@@ -89,6 +89,10 @@ export class VoiceChatService {
     if (!session) return;
 
     switch (message.type) {
+      case 'auth':
+        await this.handleAuth(session, message.userId);
+        break;
+        
       case 'audio':
         await this.handleAudioMessage(session, message.data);
         break;
@@ -105,6 +109,28 @@ export class VoiceChatService {
         // Update conversation context (e.g., current course outline being edited)
         await this.updateContext(session, message.context);
         break;
+    }
+  }
+
+  private async handleAuth(session: VoiceChatSession, userId: string) {
+    try {
+      const { storage } = await import('../storage');
+      const user = await storage.getUser(userId);
+      
+      if (user) {
+        session.userId = userId;
+        console.log(`Voice chat session ${session.id} authenticated for user ${userId}`);
+        
+        this.sendMessage(session.ws, {
+          type: 'auth_success',
+          message: 'Authentication successful'
+        });
+      } else {
+        this.sendError(session.ws, 'Authentication failed');
+      }
+    } catch (error) {
+      console.error('Error authenticating voice chat session:', error);
+      this.sendError(session.ws, 'Authentication failed');
     }
   }
 
@@ -293,18 +319,10 @@ export class VoiceChatService {
       // Store outline in session for summary requests
       session.lastCreatedOutline = outline;
       
-      // Get user ID from session (create anonymous user if needed)
+      // Get user ID from session - voice chat should only work for authenticated users
       let userId = session.userId;
       if (!userId) {
-        // Create anonymous user for voice sessions
-        const anonymousUser = await storage.upsertUser({
-          id: `voice-${session.id}`,
-          email: null,
-          firstName: 'Voice',
-          lastName: 'User',
-        });
-        userId = anonymousUser.id;
-        session.userId = userId;
+        throw new Error('Voice chat requires user authentication. Please log in first.');
       }
       
       // Create a project for this course
