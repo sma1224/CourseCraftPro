@@ -2,12 +2,18 @@ import {
   users,
   projects,
   courseOutlines,
+  moduleContent,
+  contentSessions,
   type User,
   type UpsertUser,
   type Project,
   type InsertProject,
   type CourseOutline,
   type InsertCourseOutline,
+  type ModuleContent,
+  type InsertModuleContent,
+  type ContentSession,
+  type InsertContentSession,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -30,6 +36,17 @@ export interface IStorage {
   getProjectOutlines(projectId: number): Promise<CourseOutline[]>;
   updateCourseOutline(id: number, updates: Partial<InsertCourseOutline>): Promise<CourseOutline>;
   getActiveOutline(projectId: number): Promise<CourseOutline | undefined>;
+  
+  // Module content operations
+  createModuleContent(content: InsertModuleContent): Promise<ModuleContent>;
+  getModuleContent(id: number): Promise<ModuleContent | undefined>;
+  getOutlineModuleContents(outlineId: number): Promise<ModuleContent[]>;
+  updateModuleContent(id: number, updates: Partial<InsertModuleContent>): Promise<ModuleContent>;
+  initializeModuleContents(outlineId: number, moduleCount: number): Promise<ModuleContent[]>;
+  
+  // Content session operations
+  createContentSession(session: InsertContentSession): Promise<ContentSession>;
+  getModuleContentSessions(moduleContentId: number): Promise<ContentSession[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -142,6 +159,89 @@ export class DatabaseStorage implements IStorage {
         eq(courseOutlines.isActive, true)
       ));
     return outline as CourseOutline | undefined;
+  }
+
+  // Module content operations
+  async createModuleContent(content: InsertModuleContent): Promise<ModuleContent> {
+    const [moduleContentRecord] = await db
+      .insert(moduleContent)
+      .values(content)
+      .returning();
+    return moduleContentRecord as ModuleContent;
+  }
+
+  async getModuleContent(id: number): Promise<ModuleContent | undefined> {
+    const [content] = await db
+      .select()
+      .from(moduleContent)
+      .where(eq(moduleContent.id, id));
+    return content as ModuleContent | undefined;
+  }
+
+  async getOutlineModuleContents(outlineId: number): Promise<ModuleContent[]> {
+    const contents = await db
+      .select()
+      .from(moduleContent)
+      .where(eq(moduleContent.outlineId, outlineId))
+      .orderBy(moduleContent.moduleIndex);
+    return contents as ModuleContent[];
+  }
+
+  async updateModuleContent(id: number, updates: Partial<InsertModuleContent>): Promise<ModuleContent> {
+    const [updated] = await db
+      .update(moduleContent)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(moduleContent.id, id))
+      .returning();
+    return updated as ModuleContent;
+  }
+
+  async initializeModuleContents(outlineId: number, moduleCount: number): Promise<ModuleContent[]> {
+    // Get the outline to extract module titles
+    const outline = await this.getCourseOutline(outlineId);
+    if (!outline) {
+      throw new Error('Outline not found');
+    }
+
+    const outlineData = outline.content as any;
+    const modules = outlineData.modules || [];
+
+    const moduleContents: InsertModuleContent[] = [];
+    for (let i = 0; i < moduleCount && i < modules.length; i++) {
+      moduleContents.push({
+        outlineId,
+        moduleIndex: i,
+        title: modules[i].title || `Module ${i + 1}`,
+        status: 'not_started',
+        estimatedTime: 120, // Default 2 hours
+      });
+    }
+
+    const results: ModuleContent[] = [];
+    for (const content of moduleContents) {
+      const created = await this.createModuleContent(content);
+      results.push(created);
+    }
+
+    return results;
+  }
+
+  // Content session operations
+  async createContentSession(session: InsertContentSession): Promise<ContentSession> {
+    const [sessionRecord] = await db
+      .insert(contentSessions)
+      .values(session)
+      .returning();
+    return sessionRecord as ContentSession;
+  }
+
+  async getModuleContentSessions(moduleContentId: number): Promise<ContentSession[]> {
+    const sessions = await db
+      .select()
+      .from(contentSessions)
+      .where(eq(contentSessions.moduleContentId, moduleContentId))
+      .orderBy(desc(contentSessions.createdAt));
+    return sessions as ContentSession[];
   }
 }
 

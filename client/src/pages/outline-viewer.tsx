@@ -1,16 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Users, BookOpen, Target, CheckCircle, FileText, Link } from "lucide-react";
+import { Clock, Users, BookOpen, Target, CheckCircle, FileText, Link, Edit } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function OutlineViewer() {
   const { id } = useParams();
+  const [, navigate] = useLocation();
   
   const { data: outline, isLoading, error } = useQuery({
     queryKey: [`/api/course-outlines/${id}`],
@@ -84,14 +85,24 @@ export default function OutlineViewer() {
             >
               ← Back
             </Button>
-            <Button onClick={() => {
-              toast({
-                title: "Feature Coming Soon",
-                description: "Edit functionality will be available soon",
-              });
-            }}>
-              Edit Outline
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/content-creator/${id}`)}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Content Creator
+              </Button>
+              <Button onClick={() => {
+                toast({
+                  title: "Feature Coming Soon",
+                  description: "Edit functionality will be available soon",
+                });
+              }}>
+                Edit Outline
+              </Button>
+            </div>
           </div>
           
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">

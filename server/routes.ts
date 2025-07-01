@@ -8,6 +8,8 @@ import {
   insertCourseOutlineSchema 
 } from "@shared/schema";
 import { generateCourseOutline, enhanceOutlineSection, transcribeAudio } from "./services/openai";
+import { generateModuleContent, generateFollowUpQuestions, enhanceModuleContent } from "./services/contentGenerator";
+import { contentGenerationRequestSchema } from "@shared/schema";
 import { VoiceChatService } from "./services/voiceChat";
 import multer from "multer";
 
@@ -464,6 +466,233 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching course outline:", error);
       res.status(500).json({ message: "Failed to fetch course outline" });
+    }
+  });
+
+  // Content Creator Routes
+  
+  // Initialize module contents for an outline
+  app.post('/api/course-outlines/:id/initialize-content', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      // Verify ownership through project
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Check if already initialized
+      const existingContents = await storage.getOutlineModuleContents(outlineId);
+      if (existingContents.length > 0) {
+        return res.json(existingContents);
+      }
+      
+      // Initialize module contents based on outline
+      const outlineData = outline.content as any;
+      const moduleCount = outlineData.modules?.length || 0;
+      
+      const moduleContents = await storage.initializeModuleContents(outlineId, moduleCount);
+      res.json(moduleContents);
+    } catch (error) {
+      console.error("Error initializing module contents:", error);
+      res.status(500).json({ message: "Failed to initialize module contents" });
+    }
+  });
+  
+  // Get all module contents for an outline
+  app.get('/api/course-outlines/:id/module-contents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      // Verify ownership through project
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const moduleContents = await storage.getOutlineModuleContents(outlineId);
+      res.json(moduleContents);
+    } catch (error) {
+      console.error("Error fetching module contents:", error);
+      res.status(500).json({ message: "Failed to fetch module contents" });
+    }
+  });
+  
+  // Generate content for a specific module
+  app.post('/api/module-content/:id/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const moduleContentId = parseInt(req.params.id);
+      
+      // Verify ownership
+      const moduleContent = await storage.getModuleContent(moduleContentId);
+      if (!moduleContent) {
+        return res.status(404).json({ message: "Module content not found" });
+      }
+      
+      const outline = await storage.getCourseOutline(moduleContent.outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Parse and validate the content generation request
+      const requestData = contentGenerationRequestSchema.parse(req.body);
+      
+      // Get module data from outline
+      const outlineData = outline.content as any;
+      const moduleData = outlineData.modules?.[requestData.moduleIndex];
+      
+      if (!moduleData) {
+        return res.status(400).json({ message: "Module not found in outline" });
+      }
+      
+      // Update status to in_progress
+      await storage.updateModuleContent(moduleContentId, { status: 'in_progress' });
+      
+      // Generate content
+      const generatedContent = await generateModuleContent(requestData, moduleData, outlineData);
+      
+      // Save generated content
+      const updatedModule = await storage.updateModuleContent(moduleContentId, {
+        content: generatedContent,
+        status: 'complete'
+      });
+      
+      // Save the generation session
+      await storage.createContentSession({
+        moduleContentId,
+        userPrompt: requestData.userPrompt,
+        aiResponse: generatedContent,
+        sessionData: { requestData, moduleData, courseContext: outlineData }
+      });
+      
+      res.json(updatedModule);
+    } catch (error) {
+      console.error("Error generating module content:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate module content" 
+      });
+    }
+  });
+  
+  // Generate follow-up questions for content planning
+  app.post('/api/module-content/:id/follow-up-questions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const moduleContentId = parseInt(req.params.id);
+      
+      // Verify ownership
+      const moduleContent = await storage.getModuleContent(moduleContentId);
+      if (!moduleContent) {
+        return res.status(404).json({ message: "Module content not found" });
+      }
+      
+      const outline = await storage.getCourseOutline(moduleContent.outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { userPrompt, moduleIndex } = req.body;
+      
+      if (!userPrompt || typeof moduleIndex !== 'number') {
+        return res.status(400).json({ message: "User prompt and module index are required" });
+      }
+      
+      // Get module data from outline
+      const outlineData = outline.content as any;
+      const moduleData = outlineData.modules?.[moduleIndex];
+      
+      if (!moduleData) {
+        return res.status(400).json({ message: "Module not found in outline" });
+      }
+      
+      // Generate follow-up questions
+      const questions = await generateFollowUpQuestions(userPrompt, moduleData, outlineData);
+      
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating follow-up questions:", error);
+      res.status(500).json({ message: "Failed to generate follow-up questions" });
+    }
+  });
+  
+  // Enhance existing module content
+  app.post('/api/module-content/:id/enhance', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const moduleContentId = parseInt(req.params.id);
+      
+      // Verify ownership
+      const moduleContent = await storage.getModuleContent(moduleContentId);
+      if (!moduleContent) {
+        return res.status(404).json({ message: "Module content not found" });
+      }
+      
+      const outline = await storage.getCourseOutline(moduleContent.outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { enhancementPrompt } = req.body;
+      
+      if (!enhancementPrompt || !moduleContent.content) {
+        return res.status(400).json({ message: "Enhancement prompt and existing content are required" });
+      }
+      
+      // Enhance the content
+      const enhancedContent = await enhanceModuleContent(
+        moduleContent.content as any,
+        enhancementPrompt
+      );
+      
+      // Save enhanced content
+      const updatedModule = await storage.updateModuleContent(moduleContentId, {
+        content: enhancedContent,
+        status: 'complete'
+      });
+      
+      // Save the enhancement session
+      await storage.createContentSession({
+        moduleContentId,
+        userPrompt: `Enhancement: ${enhancementPrompt}`,
+        aiResponse: enhancedContent,
+        sessionData: { enhancementPrompt, originalContent: moduleContent.content }
+      });
+      
+      res.json(updatedModule);
+    } catch (error) {
+      console.error("Error enhancing module content:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to enhance module content" 
+      });
     }
   });
 

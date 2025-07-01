@@ -9,6 +9,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import CourseGenerator from "@/pages/course-generator";
 import OutlineViewer from "@/pages/outline-viewer";
+import ContentCreator from "@/pages/content-creator";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -23,7 +24,7 @@ function Router() {
           <Route path="/course-generator" component={CourseGenerator} />
           <Route path="/outline-generator" component={CourseGenerator} />
           <Route path="/outline/:id" component={OutlineViewer} />
-          <Route path="/content-creator" component={NotFound} />
+          <Route path="/content-creator/:outlineId" component={ContentCreator} />
           <Route path="/video-producer" component={NotFound} />
           <Route path="/assessment-builder" component={NotFound} />
           <Route path="/resource-manager" component={NotFound} />
