@@ -43,7 +43,9 @@ export default function ContentCreator() {
         credentials: 'include'
       });
       if (!response.ok) return [];
-      return response.json();
+      const data = await response.json();
+      console.log('Module contents loaded:', data);
+      return data;
     },
     enabled: !!outlineId,
   });
@@ -208,7 +210,10 @@ export default function ContentCreator() {
                         <Button 
                           variant="outline"
                           className="w-full"
-                          onClick={() => setSelectedModule({ ...module, index, content: hasContent })}
+                          onClick={() => {
+                            console.log('Viewing content for module:', hasContent);
+                            setSelectedModule({ ...module, index, content: hasContent });
+                          }}
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           View Content
@@ -344,10 +349,70 @@ export default function ContentCreator() {
                             lineHeight: '1.6'
                           }}
                         >
-                          {typeof selectedModule.content.content === 'string' 
-                            ? selectedModule.content.content 
-                            : JSON.stringify(selectedModule.content.content, null, 2)
-                          }
+                          {(() => {
+                            const content = selectedModule.content.content;
+                            
+                            // Handle new markdown format (string)
+                            if (typeof content === 'string') {
+                              return content;
+                            }
+                            
+                            // Handle old JSON format - convert to readable text
+                            if (typeof content === 'object' && content !== null) {
+                              let formatted = `# ${content.title || selectedModule.content.title}\n\n`;
+                              
+                              if (content.overview) {
+                                formatted += `## Overview\n${content.overview}\n\n`;
+                              }
+                              
+                              if (content.lessons && Array.isArray(content.lessons)) {
+                                formatted += `## Lessons\n\n`;
+                                content.lessons.forEach((lesson: any, idx: number) => {
+                                  formatted += `### Lesson ${idx + 1}: ${lesson.title}\n`;
+                                  formatted += `${lesson.content}\n`;
+                                  formatted += `**Duration:** ${lesson.duration}\n\n`;
+                                  if (lesson.activities && lesson.activities.length > 0) {
+                                    formatted += `**Activities:**\n${lesson.activities.map((a: string) => `- ${a}`).join('\n')}\n\n`;
+                                  }
+                                });
+                              }
+                              
+                              if (content.exercises && Array.isArray(content.exercises)) {
+                                formatted += `## Exercises\n\n`;
+                                content.exercises.forEach((exercise: any, idx: number) => {
+                                  formatted += `### Exercise ${idx + 1}: ${exercise.title}\n`;
+                                  formatted += `${exercise.description}\n\n`;
+                                  if (exercise.instructions) {
+                                    formatted += `**Instructions:**\n${exercise.instructions.map((i: string) => `${i}`).join('\n')}\n\n`;
+                                  }
+                                });
+                              }
+                              
+                              if (content.assessments && Array.isArray(content.assessments)) {
+                                formatted += `## Assessments\n\n`;
+                                content.assessments.forEach((assessment: any, idx: number) => {
+                                  formatted += `### ${assessment.type}: ${assessment.title}\n`;
+                                  if (assessment.questions) {
+                                    assessment.questions.forEach((q: any, qIdx: number) => {
+                                      formatted += `**Question ${qIdx + 1}:** ${q.question}\n`;
+                                      if (q.options) {
+                                        formatted += q.options.map((opt: string, optIdx: number) => `${String.fromCharCode(65 + optIdx)}. ${opt}`).join('\n') + '\n';
+                                      }
+                                      if (q.correctAnswer) {
+                                        formatted += `**Correct Answer:** ${q.correctAnswer}\n`;
+                                      }
+                                      formatted += '\n';
+                                    });
+                                  }
+                                });
+                              }
+                              
+                              return formatted;
+                            }
+                            
+                            // Fallback for any other format
+                            return JSON.stringify(content, null, 2);
+                          })()}
                         </div>
                       </div>
                     </div>
