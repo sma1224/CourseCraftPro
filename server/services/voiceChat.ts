@@ -97,6 +97,10 @@ export class VoiceChatService {
         await this.handleTextMessage(session, message.text);
         break;
       
+      case 'interrupt':
+        await this.handleInterrupt(session);
+        break;
+      
       case 'context':
         // Update conversation context (e.g., current course outline being edited)
         await this.updateContext(session, message.context);
@@ -158,6 +162,19 @@ export class VoiceChatService {
       console.error('Error processing audio:', error);
       this.sendError(session.ws, 'Failed to process audio. Please try speaking again.');
     }
+  }
+
+  private async handleInterrupt(session: VoiceChatSession) {
+    console.log("Processing interrupted by user");
+    
+    // Stop any ongoing processing
+    session.isProcessing = false;
+    
+    // Send ready signal to client
+    this.sendMessage(session.ws, {
+      type: 'ready',
+      text: 'Stopped. Ready for your next message.'
+    });
   }
 
   private async handleTextMessage(session: VoiceChatSession, text: string) {

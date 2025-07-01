@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Phone, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, MessageSquare, Phone, PhoneOff, StopCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface VoiceChatProps {
@@ -32,6 +32,7 @@ export default function VoiceChat({
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     if (isOpen && !isConnected) {
@@ -268,6 +269,7 @@ export default function VoiceChat({
       }
       
       const mediaRecorder = new MediaRecorder(mediaStreamRef.current, options);
+      mediaRecorderRef.current = mediaRecorder;
       const audioChunks: Blob[] = [];
       
       // Set up voice activity detection
@@ -282,18 +284,31 @@ export default function VoiceChat({
       
       let silenceStart = Date.now();
       let speaking = false;
-      const silenceThreshold = 2000; // 2 seconds of silence to stop
-      const volumeThreshold = 30; // Minimum volume to consider as speech
+      let hasSpoken = false;
+      const silenceThreshold = 4000; // 4 seconds of silence to stop (increased from 2)
+      const volumeThreshold = 25; // Slightly lower threshold for better sensitivity
       
       const checkAudioLevel = () => {
         analyzer.getByteFrequencyData(dataArray);
         const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
         
         if (average > volumeThreshold) {
-          speaking = true;
+          if (!speaking) {
+            speaking = true;
+            hasSpoken = true;
+            console.log("Speech detected, continuing recording");
+          }
           silenceStart = Date.now();
-        } else if (speaking && Date.now() - silenceStart > silenceThreshold) {
-          // Stop recording after silence threshold
+        } else if (speaking && hasSpoken && Date.now() - silenceStart > silenceThreshold) {
+          // Only stop after we've detected actual speech and then silence
+          console.log("Silence threshold reached, stopping recording");
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+          return;
+        } else if (!hasSpoken && Date.now() - silenceStart > 10000) {
+          // If no speech detected for 10 seconds, stop waiting
+          console.log("No speech detected for 10 seconds, stopping");
           if (mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
           }
@@ -356,7 +371,31 @@ export default function VoiceChat({
 
   const stopRecording = () => {
     setIsRecording(false);
-    // Recording will automatically stop and process after 3 seconds
+    // Force stop current recording if active
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const interruptProcessing = () => {
+    // Stop any ongoing processing
+    setIsProcessing(false);
+    setIsRecording(false);
+    
+    // Stop current audio playback if any
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
+    }
+    
+    // Send interrupt signal to backend
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'interrupt'
+      }));
+    }
+    
+    console.log("Processing interrupted by user");
   };
 
   const toggleMute = () => {
@@ -467,9 +506,21 @@ export default function VoiceChat({
               {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
             </Button>
 
+            {(isProcessing || isRecording) && (
+              <Button
+                onClick={interruptProcessing}
+                variant="outline"
+                size="lg"
+                className="rounded-full border-red-300 text-red-600 hover:bg-red-50"
+                title="Stop/Interrupt"
+              >
+                <StopCircle className="h-6 w-6" />
+              </Button>
+            )}
+
             <Button
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={!isConnected || isProcessing}
+              disabled={!isConnected}
               variant={isRecording ? "destructive" : "default"}
               size="lg"
               className="rounded-full w-16 h-16"
@@ -494,8 +545,8 @@ export default function VoiceChat({
           </div>
 
           <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
-            {isProcessing ? 'AI is thinking and generating response...' : 
-             isRecording ? 'Recording for 3 seconds...' : 
+            {isProcessing ? 'AI is thinking and generating response... (press stop to interrupt)' : 
+             isRecording ? 'Listening... speak naturally, will stop after 4 seconds of silence' : 
              'Press microphone to continue conversation'}
           </div>
         </CardContent>
