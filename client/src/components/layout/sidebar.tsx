@@ -25,7 +25,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/", icon: LayoutDashboard, current: location === "/" },
     { name: "New Course", href: "/course-generator", icon: Plus, current: location === "/course-generator" },
     { name: "Outline Generator", href: "/outline-generator", icon: List, current: false },
-    { name: "Content Creator", href: "/content-creator", icon: Edit, current: false, badge: "Soon" },
+    { name: "Content Creator", href: "/", icon: Edit, current: false, badge: "Via Outlines" },
     { name: "Video Producer", href: "/video-producer", icon: Video, current: false, badge: "Soon" },
     { name: "Assessment Builder", href: "/assessment-builder", icon: ClipboardCheck, current: false, badge: "Soon" },
     { name: "Resource Manager", href: "/resource-manager", icon: Folder, current: false, badge: "Soon" },
