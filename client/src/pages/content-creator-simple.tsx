@@ -71,7 +71,24 @@ export default function ContentCreator() {
     );
   }
 
-  const outlineData = outline?.content ? JSON.parse(outline.content) : { modules: [] };
+  const outlineData = (() => {
+    try {
+      if (outline?.content) {
+        // If content is already an object, return it directly
+        if (typeof outline.content === 'object') {
+          return outline.content;
+        }
+        // If content is a string, try to parse it
+        if (typeof outline.content === 'string') {
+          return JSON.parse(outline.content);
+        }
+      }
+      return { modules: [] };
+    } catch (error) {
+      console.error('Error parsing outline content:', error);
+      return { modules: [] };
+    }
+  })();
   const modules = Array.isArray(outlineData.modules) ? outlineData.modules : [];
 
   return (
