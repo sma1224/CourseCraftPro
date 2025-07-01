@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -59,11 +59,11 @@ export default function InteractiveContentGenerator({
   const queryClient = useQueryClient();
 
   // Initialize content analysis when modal opens
-  useState(() => {
+  React.useEffect(() => {
     if (isOpen && chatMessages.length === 0) {
       startContentAnalysis();
     }
-  });
+  }, [isOpen]);
 
   const startContentAnalysis = async () => {
     setIsAnalyzing(true);
@@ -78,8 +78,12 @@ export default function InteractiveContentGenerator({
     setChatMessages([systemMessage]);
     
     try {
-      const analysisResponse = await apiRequest('/api/analyze-content-requirements', {
+      const response = await fetch('/api/analyze-content-requirements', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           moduleTitle,
           moduleDescription,
@@ -88,6 +92,12 @@ export default function InteractiveContentGenerator({
           moduleIndex
         })
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze content');
+      }
+      
+      const analysisResponse = await response.json();
       
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -124,8 +134,12 @@ export default function InteractiveContentGenerator({
     setIsAnalyzing(true);
     
     try {
-      const response = await apiRequest('/api/content-chat', {
+      const response = await fetch('/api/content-chat', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           message: currentMessage,
           context: {
@@ -138,20 +152,26 @@ export default function InteractiveContentGenerator({
         })
       });
       
+      if (!response.ok) {
+        throw new Error('Failed to process message');
+      }
+      
+      const chatResponse = await response.json();
+      
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: response.message,
+        content: chatResponse.message,
         timestamp: new Date()
       };
       
       setChatMessages(prev => [...prev, assistantMessage]);
       
-      if (response.updatedRequirements) {
-        setContentRequirements(response.updatedRequirements);
+      if (chatResponse.updatedRequirements) {
+        setContentRequirements(chatResponse.updatedRequirements);
       }
       
-      if (response.phase) {
-        setCurrentPhase(response.phase);
+      if (chatResponse.phase) {
+        setCurrentPhase(chatResponse.phase);
       }
       
     } catch (error) {
@@ -170,8 +190,12 @@ export default function InteractiveContentGenerator({
       setCurrentPhase('generation');
       setGenerationProgress(0);
       
-      const response = await apiRequest('/api/generate-comprehensive-content', {
+      const response = await fetch('/api/generate-comprehensive-content', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           outlineId,
           moduleIndex,
@@ -184,7 +208,11 @@ export default function InteractiveContentGenerator({
         })
       });
       
-      return response;
+      if (!response.ok) {
+        throw new Error('Failed to generate content');
+      }
+      
+      return response.json();
     },
     onSuccess: (data) => {
       setGenerationProgress(100);
