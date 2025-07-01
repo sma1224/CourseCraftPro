@@ -389,14 +389,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Generated outline successfully:', outline.title);
       
       // Create a project for this course
-      const project = await storage.createProject({
+      console.log('Creating project with data:', {
         title: outline.title,
         description: outline.description,
         userId: userId,
         status: 'in_progress'
       });
       
+      const projectData = {
+        title: outline.title,
+        description: outline.description,
+        userId: userId,
+        status: 'in_progress' as const
+      };
+      
+      console.log('About to create project with exact data:', projectData);
+      const project = await storage.createProject(projectData);
+      
+      console.log('Project created successfully:', project.id);
+      
       // Save the outline to the project
+      console.log('Creating course outline with data:', {
+        title: outline.title,
+        projectId: project.id,
+        version: 1,
+        isActive: true
+      });
+      
       const savedOutline = await storage.createCourseOutline({
         title: outline.title,
         projectId: project.id,
