@@ -77,15 +77,24 @@ export default function OutlineViewer() {
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Button 
-              variant="outline" 
-              onClick={() => window.history.back()}
-              className="mb-4"
-            >
-              ← Back
-            </Button>
-            <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => window.history.back()}
+            className="mb-4"
+          >
+            ← Back
+          </Button>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {courseData.title}
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400">
+                {courseData.description}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/content-creator/${id}`)}
@@ -104,13 +113,6 @@ export default function OutlineViewer() {
               </Button>
             </div>
           </div>
-          
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {courseData.title}
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
-            {courseData.description}
-          </p>
 
           {/* Course Info */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
