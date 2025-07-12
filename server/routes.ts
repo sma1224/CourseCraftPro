@@ -257,6 +257,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct course outline access endpoints
+  app.get('/api/course-outlines/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      // Verify the outline belongs to the user through the project
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(outline);
+    } catch (error) {
+      console.error("Error fetching course outline:", error);
+      res.status(500).json({ message: "Failed to fetch course outline" });
+    }
+  });
+
+  app.get('/api/course-outlines/:id/module-contents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      // Verify the outline belongs to the user through the project
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const moduleContents = await storage.getOutlineModuleContents(outlineId);
+      res.json(moduleContents);
+    } catch (error) {
+      console.error("Error fetching module contents:", error);
+      res.status(500).json({ message: "Failed to fetch module contents" });
+    }
+  });
+
+  app.post('/api/course-outlines/:id/initialize-content', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      // Verify the outline belongs to the user through the project
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Initialize module contents based on outline modules
+      const outlineData = typeof outline.content === 'string' ? JSON.parse(outline.content) : outline.content;
+      const moduleCount = outlineData.modules?.length || 0;
+      
+      const moduleContents = await storage.initializeModuleContents(outlineId, moduleCount);
+      res.json(moduleContents);
+    } catch (error) {
+      console.error("Error initializing module contents:", error);
+      res.status(500).json({ message: "Failed to initialize module contents" });
+    }
+  });
+
+  // Alternative endpoint format for module contents
+  app.get('/api/outlines/:id/module-contents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      // Verify the outline belongs to the user through the project
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const moduleContents = await storage.getOutlineModuleContents(outlineId);
+      res.json(moduleContents);
+    } catch (error) {
+      console.error("Error fetching module contents:", error);
+      res.status(500).json({ message: "Failed to fetch module contents" });
+    }
+  });
+
   // AI-powered outline enhancement
   app.post('/api/enhance-outline', isAuthenticated, async (req: any, res) => {
     try {
