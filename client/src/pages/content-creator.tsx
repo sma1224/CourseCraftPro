@@ -83,7 +83,7 @@ export default function ContentCreator() {
 
   // Fetch module contents
   const { data: moduleContents, isLoading: contentsLoading } = useQuery({
-    queryKey: [`/api/course-outlines/${outlineId}/module-contents`],
+    queryKey: [`/api/outlines/${outlineId}/module-contents`],
     enabled: !!outlineId && isAuthenticated,
     retry: false,
   });

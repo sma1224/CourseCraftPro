@@ -28,7 +28,9 @@ export default function ModuleContentCard({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const hasContent = moduleContent && moduleContent.content && moduleContent.content.trim().length > 0;
+  const hasContent = moduleContent && moduleContent.content && 
+    (typeof moduleContent.content === 'string' ? moduleContent.content.trim().length > 0 : 
+     Object.keys(moduleContent.content).length > 0);
   
   const updateContentMutation = useMutation({
     mutationFn: async (newContent: string) => {
@@ -129,18 +131,26 @@ export default function ModuleContentCard({
                   Generated Content Available
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
-                {moduleContent.content.lessons && (
-                  <div>• {moduleContent.content.lessons.length} detailed lessons</div>
-                )}
-                {moduleContent.content.exercises && (
-                  <div>• {moduleContent.content.exercises.length} exercises</div>
-                )}
-                {moduleContent.content.caseStudies && (
-                  <div>• {moduleContent.content.caseStudies.length} case studies</div>
-                )}
-                {moduleContent.content.assessments && (
-                  <div>• {moduleContent.content.assessments.length} assessments</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                {typeof moduleContent.content === 'string' ? (
+                  <div className="line-clamp-3">
+                    {moduleContent.content.substring(0, 150)}...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {moduleContent.content.lessons && (
+                      <div>• {moduleContent.content.lessons.length} detailed lessons</div>
+                    )}
+                    {moduleContent.content.exercises && (
+                      <div>• {moduleContent.content.exercises.length} exercises</div>
+                    )}
+                    {moduleContent.content.caseStudies && (
+                      <div>• {moduleContent.content.caseStudies.length} case studies</div>
+                    )}
+                    {moduleContent.content.assessments && (
+                      <div>• {moduleContent.content.assessments.length} assessments</div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
