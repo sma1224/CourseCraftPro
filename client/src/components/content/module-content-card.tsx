@@ -2,22 +2,63 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, BookOpen, FileText, Plus, CheckCircle, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Clock, BookOpen, FileText, Plus, CheckCircle, AlertCircle, Eye, Sparkles } from "lucide-react";
+import RichTextEditor from "@/components/editor/rich-text-editor";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ModuleContentCardProps {
   module: any;
   moduleContent?: any;
   moduleIndex: number;
   onCreateContent: () => void;
+  outlineId: number;
 }
 
 export default function ModuleContentCard({ 
   module, 
   moduleContent, 
   moduleIndex, 
-  onCreateContent 
+  onCreateContent,
+  outlineId 
 }: ModuleContentCardProps) {
-  const hasContent = moduleContent && Object.keys(moduleContent.content || {}).length > 0;
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const hasContent = moduleContent && moduleContent.content && moduleContent.content.trim().length > 0;
+  
+  const updateContentMutation = useMutation({
+    mutationFn: async (newContent: string) => {
+      return apiRequest(`/api/module-content/${moduleContent.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: module.title,
+          content: newContent
+        })
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Content Updated",
+        description: "Module content has been saved successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to save content changes. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleContentSave = (content: string) => {
+    updateContentMutation.mutate(content);
+  };
   
   return (
     <Card className="w-full border-l-4 border-l-blue-500">
@@ -105,25 +146,54 @@ export default function ModuleContentCard({
             </div>
           )}
           
-          {/* Action Button */}
-          <div className="pt-2">
-            <Button 
-              onClick={onCreateContent}
-              className="w-full"
-              variant={hasContent ? "outline" : "default"}
-            >
-              {hasContent ? (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  View & Edit Content
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Generate Content
-                </>
-              )}
-            </Button>
+          {/* Action Buttons */}
+          <div className="pt-2 space-y-2">
+            {hasContent ? (
+              <div className="flex gap-2">
+                <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Content
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>
+                        Module {moduleIndex + 1}: {module.title}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="mt-4">
+                      <RichTextEditor 
+                        content={moduleContent.content || ''}
+                        onSave={handleContentSave}
+                        title={module.title}
+                        readOnly={false}
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button 
+                  onClick={onCreateContent}
+                  variant="default"
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Smart Generator
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={onCreateContent}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Smart Generator
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

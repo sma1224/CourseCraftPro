@@ -280,6 +280,7 @@ export default function ContentCreator() {
                         module={module}
                         moduleContent={moduleContent}
                         moduleIndex={index}
+                        outlineId={parseInt(outlineId || '0')}
                         onCreateContent={() => {
                           setSelectedModuleId(moduleContent?.id || null);
                           setShowContentGenerator(true);
