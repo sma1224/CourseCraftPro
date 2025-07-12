@@ -187,6 +187,8 @@ export const contentGenerationRequestSchema = z.object({
   difficultyLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
   includeTemplates: z.boolean().optional(),
   includeExamples: z.boolean().optional(),
+  contentDetail: z.enum(['brief', 'quick', 'detailed', 'comprehensive']).optional(),
+  wordCount: z.number().optional(),
 });
 
 export type ContentGenerationRequest = z.infer<typeof contentGenerationRequestSchema>;

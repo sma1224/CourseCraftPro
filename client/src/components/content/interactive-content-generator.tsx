@@ -10,9 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, User, Send, CheckCircle, AlertCircle, Lightbulb } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bot, User, Send, CheckCircle, AlertCircle, Lightbulb, Eye, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import RichTextEditor from "@/components/editor/rich-text-editor";
 
 interface InteractiveContentGeneratorProps {
   isOpen: boolean;
@@ -55,6 +57,10 @@ export default function InteractiveContentGenerator({
   const [contentRequirements, setContentRequirements] = useState<ContentRequirement[]>([]);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<'analysis' | 'requirements' | 'generation' | 'review'>('analysis');
+  const [contentDetail, setContentDetail] = useState<'brief' | 'quick' | 'detailed' | 'comprehensive'>('detailed');
+  const [wordCount, setWordCount] = useState<number>(1000);
+  const [generatedContent, setGeneratedContent] = useState<string>('');
+  const [showGeneratedContent, setShowGeneratedContent] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -216,7 +222,9 @@ export default function InteractiveContentGenerator({
           courseTitle,
           courseDescription,
           requirements: contentRequirements.filter(req => req.completed),
-          chatHistory: chatMessages
+          chatHistory: chatMessages,
+          contentDetail,
+          wordCount
         })
       });
       
@@ -230,6 +238,12 @@ export default function InteractiveContentGenerator({
       console.log('Content generation successful:', data);
       setGenerationProgress(100);
       queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
+      
+      // Store generated content
+      if (data.content) {
+        setGeneratedContent(data.content);
+        setShowGeneratedContent(true);
+      }
       
       const successMessage: ChatMessage = {
         role: 'system',
@@ -296,75 +310,112 @@ export default function InteractiveContentGenerator({
         </DialogHeader>
         
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
-          {/* Chat Interface */}
+          {/* Chat Interface or Content Display */}
           <div className="lg:col-span-2 flex flex-col">
-            <Card className="flex-1 flex flex-col">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">AI Content Assistant</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col min-h-0">
-                <ScrollArea className="flex-1 p-4 border rounded-lg mb-4">
-                  <div className="space-y-4">
-                    {chatMessages.map((message, index) => (
-                      <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] rounded-lg p-3 ${
-                          message.role === 'user' 
-                            ? 'bg-blue-500 text-white' 
-                            : message.role === 'system'
-                            ? 'bg-gray-100 text-gray-700 border'
-                            : 'bg-gray-50 border'
-                        }`}>
-                          <div className="flex items-center gap-2 mb-1">
-                            {message.role === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-                            <span className="text-xs opacity-70">
-                              {message.timestamp.toLocaleTimeString()}
-                            </span>
+            {showGeneratedContent && currentPhase === 'review' ? (
+              <Card className="flex-1 flex flex-col">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Generated Content
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowGeneratedContent(false)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Show Chat
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 min-h-0 max-h-[60vh] overflow-y-auto">
+                    <RichTextEditor 
+                      content={generatedContent}
+                      onSave={(content) => {
+                        setGeneratedContent(content);
+                        toast({
+                          title: "Content Updated",
+                          description: "Your changes have been saved."
+                        });
+                      }}
+                      readOnly={false}
+                      title={moduleTitle}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="flex-1 flex flex-col">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">AI Content Assistant</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col min-h-0">
+                  <ScrollArea className="flex-1 p-4 border rounded-lg mb-4">
+                    <div className="space-y-4">
+                      {chatMessages.map((message, index) => (
+                        <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] rounded-lg p-3 ${
+                            message.role === 'user' 
+                              ? 'bg-blue-500 text-white' 
+                              : message.role === 'system'
+                              ? 'bg-gray-100 text-gray-700 border'
+                              : 'bg-gray-50 border'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              {message.role === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
+                              <span className="text-xs opacity-70">
+                                {message.timestamp.toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">{message.content}</div>
                           </div>
-                          <div className="text-sm whitespace-pre-wrap">{message.content}</div>
                         </div>
-                      </div>
-                    ))}
-                    {isAnalyzing && (
-                      <div className="flex gap-3 justify-start">
-                        <div className="bg-gray-50 border rounded-lg p-3">
-                          <div className="flex items-center gap-2">
-                            <Bot className="h-3 w-3" />
-                            <div className="flex gap-1">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      ))}
+                      {isAnalyzing && (
+                        <div className="flex gap-3 justify-start">
+                          <div className="bg-gray-50 border rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <Bot className="h-3 w-3" />
+                              <div className="flex gap-1">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  </ScrollArea>
+                  
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={currentMessage}
+                      onChange={(e) => setCurrentMessage(e.target.value)}
+                      placeholder="Ask about content depth, coverage, or specific requirements..."
+                      className="flex-1 resize-none"
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={sendMessage} 
+                      disabled={!currentMessage.trim() || isAnalyzing}
+                      size="sm"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
                   </div>
-                </ScrollArea>
-                
-                <div className="flex gap-2">
-                  <Textarea
-                    value={currentMessage}
-                    onChange={(e) => setCurrentMessage(e.target.value)}
-                    placeholder="Ask about content depth, coverage, or specific requirements..."
-                    className="flex-1 resize-none"
-                    rows={2}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
-                  />
-                  <Button 
-                    onClick={sendMessage} 
-                    disabled={!currentMessage.trim() || isAnalyzing}
-                    size="sm"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Requirements Panel */}
@@ -377,7 +428,7 @@ export default function InteractiveContentGenerator({
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-64">
+                <ScrollArea className="h-48">
                   <div className="space-y-3">
                     {contentRequirements.map((requirement) => (
                       <div key={requirement.id} className="flex items-start space-x-2">
@@ -404,6 +455,37 @@ export default function InteractiveContentGenerator({
                   </div>
                 </ScrollArea>
                 
+                {/* Content Detail Options */}
+                <div className="mt-4 space-y-3 border-t pt-3">
+                  <div className="grid grid-cols-1 gap-2">
+                    <Label htmlFor="content-detail" className="text-sm font-medium">Content Detail Level</Label>
+                    <Select value={contentDetail} onValueChange={(value: any) => setContentDetail(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select detail level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="brief">Brief (300-500 words)</SelectItem>
+                        <SelectItem value="quick">Quick (500-800 words)</SelectItem>
+                        <SelectItem value="detailed">Detailed (800-1200 words)</SelectItem>
+                        <SelectItem value="comprehensive">Comprehensive (1200+ words)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-2">
+                    <Label htmlFor="word-count" className="text-sm font-medium">Target Word Count</Label>
+                    <Input
+                      id="word-count"
+                      type="number"
+                      min="200"
+                      max="3000"
+                      value={wordCount}
+                      onChange={(e) => setWordCount(Number(e.target.value))}
+                      placeholder="1000"
+                    />
+                  </div>
+                </div>
+                
                 {currentPhase === 'generation' && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-sm mb-2">
@@ -415,15 +497,26 @@ export default function InteractiveContentGenerator({
                 )}
                 
                 <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={() => generateContentMutation.mutate()}
-                    disabled={contentRequirements.filter(req => req.completed).length === 0 || 
-                             generateContentMutation.isPending || 
-                             currentPhase === 'generation'}
-                    className="flex-1"
-                  >
-                    {generateContentMutation.isPending ? 'Generating...' : 'Generate Content'}
-                  </Button>
+                  {currentPhase === 'review' && generatedContent ? (
+                    <Button
+                      onClick={() => setShowGeneratedContent(true)}
+                      className="flex-1"
+                      variant="default"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Generated Content
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => generateContentMutation.mutate()}
+                      disabled={contentRequirements.filter(req => req.completed).length === 0 || 
+                               generateContentMutation.isPending || 
+                               currentPhase === 'generation'}
+                      className="flex-1"
+                    >
+                      {generateContentMutation.isPending ? 'Generating...' : 'Generate Content'}
+                    </Button>
+                  )}
                   <Button variant="outline" onClick={onClose}>
                     Close
                   </Button>

@@ -101,7 +101,8 @@ Always respond with valid JSON following the exact structure specified.`;
 ${request.userPrompt}
 
 **CRITICAL INSTRUCTIONS:**
-- Write each lesson as a comprehensive textbook chapter with 800-1200 words of detailed explanation
+- Write each lesson as a comprehensive textbook chapter with ${request.wordCount || 1000} words of detailed explanation
+- Content Detail Level: ${request.contentDetail || 'detailed'}
 - Use full paragraphs, NOT bullet points or lists
 - Include real-world examples integrated into the narrative flow
 - Provide thorough theoretical foundations with practical applications
@@ -110,6 +111,12 @@ ${request.userPrompt}
 - Include detailed explanations of concepts, processes, and applications
 - Use transitional sentences to connect ideas smoothly
 - Provide concrete examples and scenarios embedded within the text
+
+Content Detail Requirements:
+${request.contentDetail === 'brief' ? '- Focus on key concepts with concise explanations (300-500 words per lesson)' : ''}
+${request.contentDetail === 'quick' ? '- Provide clear explanations with essential details (500-800 words per lesson)' : ''}
+${request.contentDetail === 'detailed' ? '- Include comprehensive coverage with examples (800-1200 words per lesson)' : ''}
+${request.contentDetail === 'comprehensive' ? '- Provide in-depth analysis with multiple examples and case studies (1200+ words per lesson)' : ''}
 
 Transform this module outline into publication-ready educational content with comprehensive explanations and detailed coverage of all topics.`;
 
