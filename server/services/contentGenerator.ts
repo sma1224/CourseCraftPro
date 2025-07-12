@@ -101,24 +101,39 @@ Always respond with valid JSON following the exact structure specified.`;
 ${request.userPrompt}
 
 **CRITICAL INSTRUCTIONS:**
-- Write each lesson as a comprehensive textbook chapter with ${request.wordCount || 1000} words of detailed explanation
-- Content Detail Level: ${request.contentDetail || 'detailed'}
-- Use full paragraphs, NOT bullet points or lists
-- Include real-world examples integrated into the narrative flow
+
+TARGET WORD COUNT: ${request.wordCount || 1000} words MINIMUM
+CONTENT DETAIL LEVEL: ${request.contentDetail || 'detailed'}
+
+**FORMATTING REQUIREMENTS:**
+- Use proper markdown formatting with clear headers and subheaders
+- Include line breaks between sections and paragraphs
+- Use ## for main sections, ### for subsections
+- Add blank lines between paragraphs for readability
+- Format as professional courseware reading material
+
+**CONTENT REQUIREMENTS:**
+${request.contentDetail === 'brief' ? '- Write 300-500 words of concise but complete explanations' : ''}
+${request.contentDetail === 'quick' ? '- Write 500-800 words with clear explanations and essential details' : ''}
+${request.contentDetail === 'detailed' ? '- Write 800-1200 words with comprehensive coverage, examples, and detailed explanations' : ''}
+${request.contentDetail === 'comprehensive' ? '- Write 1200+ words with in-depth analysis, multiple examples, case studies, and thorough coverage' : ''}
+
+**WRITING STYLE:**
+- Write in full paragraphs with academic depth suitable for courseware
+- Each paragraph should be 80-150 words
+- Include real-world examples integrated into the narrative
 - Provide thorough theoretical foundations with practical applications
-- Write in an academic but accessible tone suitable for textbook publication
-- Each lesson should read like a complete educational article or textbook section
-- Include detailed explanations of concepts, processes, and applications
 - Use transitional sentences to connect ideas smoothly
-- Provide concrete examples and scenarios embedded within the text
+- Write as comprehensive educational reading material, not bullet points
 
-Content Detail Requirements:
-${request.contentDetail === 'brief' ? '- Focus on key concepts with concise explanations (300-500 words per lesson)' : ''}
-${request.contentDetail === 'quick' ? '- Provide clear explanations with essential details (500-800 words per lesson)' : ''}
-${request.contentDetail === 'detailed' ? '- Include comprehensive coverage with examples (800-1200 words per lesson)' : ''}
-${request.contentDetail === 'comprehensive' ? '- Provide in-depth analysis with multiple examples and case studies (1200+ words per lesson)' : ''}
+**STRUCTURE REQUIREMENTS:**
+- Start with a clear introduction paragraph
+- Use multiple well-structured sections with descriptive headers
+- Include practical examples and case studies
+- End with a summary or conclusion section
+- Ensure proper spacing and formatting throughout
 
-Transform this module outline into publication-ready educational content with comprehensive explanations and detailed coverage of all topics.`;
+Transform this module outline into publication-ready educational courseware with the specified word count and detail level.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

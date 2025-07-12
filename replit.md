@@ -163,6 +163,15 @@ Course Creation Suite is a comprehensive SaaS web application that transforms ho
   - Improved rich text editor integration with proper scrolling in content viewer dialogs
   - Content now generates as publication-ready educational material with academic depth
 
+- January 1, 2025: Fixed Content Formatting and Detail Level Controls
+  - Enhanced content generation prompts to enforce proper markdown formatting with headers and line breaks
+  - Fixed content detail level controls to generate appropriate word counts (brief: 300-500, quick: 500-800, detailed: 800-1200, comprehensive: 1200+)
+  - Updated system prompts to require proper paragraph structure with 80-150 words per paragraph
+  - Improved content generation to include proper section headers (##, ###) and blank lines between sections
+  - Increased token limits to 6000 tokens to accommodate longer, more detailed content
+  - Enhanced content structure requirements to ensure professional courseware formatting
+  - Fixed TipTap rich text editor import issues for proper Google Docs-like editing experience
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

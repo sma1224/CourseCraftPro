@@ -882,24 +882,44 @@ What specific aspect would you like me to focus on or modify?`;
       
       const completedRequirements = requirements.filter((req: any) => req.completed);
       
+      // Extract content preferences from request
+      const { contentDetail = 'detailed', wordCount = 1000 } = req.body;
+      
       // Use OpenAI to generate comprehensive, detailed content
-      const systemPrompt = `You are an expert instructional designer creating comprehensive educational content. Create detailed, professional course material that provides real educational value.
+      const systemPrompt = `You are an expert instructional designer creating comprehensive educational courseware. Create detailed, professional course material that provides real educational value.
 
-Requirements:
-- Generate 3,000-5,000 words of detailed educational content
-- Use clear, professional language suitable for learning
-- Include practical examples and real-world applications
-- Structure content with clear headings and sections
-- Provide actionable insights and takeaways
-- Format in markdown with proper structure
+**CRITICAL FORMATTING REQUIREMENTS:**
+- Use proper markdown formatting with clear headers and subheaders
+- Include line breaks between sections and paragraphs
+- Use ## for main sections, ### for subsections
+- Add blank lines between paragraphs for readability
+- Format as professional courseware reading material
 
-Focus on creating content that truly teaches the subject matter rather than generic templates.`;
+**WORD COUNT REQUIREMENTS:**
+- Target word count: ${wordCount} words MINIMUM
+- Content detail level: ${contentDetail}
+- ${contentDetail === 'brief' ? 'Generate 300-500 words of concise but complete explanations' : ''}
+- ${contentDetail === 'quick' ? 'Generate 500-800 words with clear explanations and essential details' : ''}
+- ${contentDetail === 'detailed' ? 'Generate 800-1200 words with comprehensive coverage and examples' : ''}
+- ${contentDetail === 'comprehensive' ? 'Generate 1200+ words with in-depth analysis and multiple examples' : ''}
 
-      const userPrompt = `Create comprehensive educational content for:
+**WRITING REQUIREMENTS:**
+- Write in full paragraphs with academic depth suitable for courseware
+- Each paragraph should be 80-150 words
+- Include real-world examples integrated into the narrative
+- Provide thorough theoretical foundations with practical applications
+- Use transitional sentences to connect ideas smoothly
+- Write as comprehensive educational reading material, not bullet points
+
+Focus on creating content that truly teaches the subject matter with the specified length and detail level.`;
+
+      const userPrompt = `Create comprehensive educational courseware content for:
 
 **Module**: ${moduleTitle}
 **Course**: ${courseTitle}
 **Module Description**: ${moduleDescription}
+**Target Word Count**: ${wordCount} words MINIMUM
+**Content Detail Level**: ${contentDetail}
 
 **Required Content Sections** (based on selected requirements):
 ${completedRequirements.map((req: any) => `- ${req.title}: ${req.description}`).join('\n')}
@@ -907,15 +927,25 @@ ${completedRequirements.map((req: any) => `- ${req.title}: ${req.description}`).
 **Context from chat history**:
 ${chatHistory.slice(-3).map((msg: any) => `${msg.role}: ${msg.content}`).join('\n')}
 
-Generate detailed, educational content that covers all the essential aspects of ${moduleTitle}. Include:
-1. Clear explanations of concepts
-2. Practical examples and demonstrations
-3. Step-by-step instructions where applicable
-4. Real-world applications and use cases
-5. Interactive elements and exercises
-6. Assessment questions and activities
+**FORMATTING INSTRUCTIONS:**
+- Use proper markdown formatting with ## and ### headers
+- Include blank lines between sections and paragraphs
+- Write in full paragraphs (80-150 words each)
+- Structure as professional courseware reading material
 
-Make this content valuable for learners who want to master ${moduleTitle}.`;
+**CONTENT REQUIREMENTS:**
+Generate detailed, educational content that covers all essential aspects of ${moduleTitle}. Must include:
+
+1. **Introduction Section** - Clear overview and learning objectives
+2. **Theoretical Foundations** - Comprehensive explanations of core concepts
+3. **Practical Examples** - Real-world applications and demonstrations
+4. **Step-by-Step Instructions** - Where applicable, detailed procedures
+5. **Case Studies** - Industry examples and scenarios
+6. **Interactive Elements** - Exercises and activities for engagement
+7. **Assessment Questions** - Knowledge checks and practice problems
+8. **Summary Section** - Key takeaways and next steps
+
+Write ${wordCount} words minimum with ${contentDetail} level detail. Make this content valuable courseware for learners who want to master ${moduleTitle}.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -923,7 +953,7 @@ Make this content valuable for learners who want to master ${moduleTitle}.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        max_tokens: 4000,
+        max_tokens: 6000,
         temperature: 0.7,
       });
 
