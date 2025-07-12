@@ -63,31 +63,27 @@ export async function generateModuleContent(
       moduleTitle: moduleData.title
     });
 
-    const systemPrompt = `You are an expert instructional designer and content creator. Your task is to create comprehensive, engaging educational content for a specific course module.
+    const systemPrompt = `You are an expert instructional designer and textbook author. Your task is to create comprehensive, detailed educational content that reads like a professional textbook chapter.
 
-You will receive:
-1. A user's content requirements and preferences
-2. The module structure from the course outline
-3. Context about the overall course
+CRITICAL REQUIREMENTS:
+- Write in full paragraphs with detailed explanations, NOT bullet points or slide format
+- Each lesson should contain 800-1200 words of comprehensive text
+- Include real-world examples embedded within the explanations
+- Use textbook-style writing with clear topic sentences and detailed elaboration
+- Avoid lists, bullet points, or slide-style formatting
+- Write as if creating content for a published educational textbook
 
-Create detailed, practical content that includes:
-- Comprehensive lesson content with clear explanations
-- Interactive exercises and hands-on activities
-- Real-world case studies and examples
-- Assessment questions with answer keys
-- Resource recommendations and materials
-- Engaging activities for different learning styles
-
-Focus on creating content that is:
-- Pedagogically sound with clear learning progression
-- Engaging and interactive
-- Practical with real-world applications
-- Appropriate for the target audience
-- Aligned with learning objectives
+Content Structure Requirements:
+- Each lesson must have substantial explanatory text (minimum 800 words)
+- Include concrete examples woven into the narrative
+- Provide detailed theoretical foundations with practical applications
+- Use academic but accessible language
+- Include transitional sentences between concepts
+- Build concepts progressively with thorough explanations
 
 Always respond with valid JSON following the exact structure specified.`;
 
-    const userPrompt = `Create comprehensive content for this course module:
+    const userPrompt = `Create comprehensive textbook-style content for this course module:
 
 **Module Information:**
 - Title: ${moduleData.title}
@@ -104,14 +100,18 @@ Always respond with valid JSON following the exact structure specified.`;
 **Content Requirements:**
 ${request.userPrompt}
 
-**Preferences:**
-- Content Types: ${request.contentTypes?.join(', ') || 'All types'}
-- Engagement Level: ${request.targetEngagement || 'Medium'}
-- Difficulty Level: ${request.difficultyLevel || 'Intermediate'}
-- Include Templates: ${request.includeTemplates ? 'Yes' : 'No'}
-- Include Examples: ${request.includeExamples ? 'Yes' : 'No'}
+**CRITICAL INSTRUCTIONS:**
+- Write each lesson as a comprehensive textbook chapter with 800-1200 words of detailed explanation
+- Use full paragraphs, NOT bullet points or lists
+- Include real-world examples integrated into the narrative flow
+- Provide thorough theoretical foundations with practical applications
+- Write in an academic but accessible tone suitable for textbook publication
+- Each lesson should read like a complete educational article or textbook section
+- Include detailed explanations of concepts, processes, and applications
+- Use transitional sentences to connect ideas smoothly
+- Provide concrete examples and scenarios embedded within the text
 
-Please create detailed, comprehensive content that transforms this module outline into ready-to-use educational material. Include practical examples, interactive elements, and clear learning progression.`;
+Transform this module outline into publication-ready educational content with comprehensive explanations and detailed coverage of all topics.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -121,7 +121,7 @@ Please create detailed, comprehensive content that transforms this module outlin
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      max_tokens: 4000,
+      max_tokens: 8000,
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');

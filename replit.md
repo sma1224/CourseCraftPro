@@ -153,6 +153,16 @@ Course Creation Suite is a comprehensive SaaS web application that transforms ho
   - Smart Generator accessible via blue-purple gradient buttons on all modules in Content Creator
   - Replaces brief, generic content with professional, comprehensive educational material
 
+- January 1, 2025: Enhanced Content Generation with Textbook-Style Output
+  - Modified LLM prompts to generate comprehensive textbook-style explanations instead of bullet points
+  - Updated system prompts to require 800-1200 words per lesson with detailed narrative explanations
+  - Enhanced content generation to produce full paragraphs with embedded examples
+  - Increased token limits to 8000 tokens to accommodate longer educational content
+  - Added proper scrolling capabilities to Content Review & Finalization screen
+  - Fixed content display logic to handle both string and object content formats
+  - Improved rich text editor integration with proper scrolling in content viewer dialogs
+  - Content now generates as publication-ready educational material with academic depth
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

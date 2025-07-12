@@ -176,7 +176,7 @@ export default function ModuleContentCard({
                         Module {moduleIndex + 1}: {module.title}
                       </DialogTitle>
                     </DialogHeader>
-                    <div className="mt-4">
+                    <div className="mt-4 max-h-[75vh] overflow-y-auto">
                       <RichTextEditor 
                         content={moduleContent.content || ''}
                         onSave={handleContentSave}
