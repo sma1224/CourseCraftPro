@@ -58,6 +58,36 @@ export default function RichTextEditor({
   const [isEditing, setIsEditing] = useState(!readOnly);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Convert markdown to HTML for proper display
+  const convertMarkdownToHtml = (markdown: string): string => {
+    if (!markdown) return '';
+    
+    // Split content into paragraphs first
+    const paragraphs = markdown.split(/\n\s*\n/);
+    
+    let html = paragraphs.map(paragraph => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) return '';
+      
+      // Handle headers
+      if (trimmed.startsWith('##')) {
+        const level = trimmed.match(/^#+/)?.[0].length || 2;
+        const text = trimmed.replace(/^#+\s*/, '');
+        return `<h${level}>${text}</h${level}>`;
+      }
+      
+      // Handle regular paragraphs
+      let processed = trimmed
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+      
+      return `<p>${processed}</p>`;
+    }).filter(p => p).join('');
+    
+    return html;
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -93,7 +123,7 @@ export default function RichTextEditor({
       TableHeader,
       TableCell,
     ],
-    content: content,
+    content: convertMarkdownToHtml(content),
     editable: isEditing,
     onUpdate: ({ editor }) => {
       setHasChanges(true);
@@ -102,7 +132,7 @@ export default function RichTextEditor({
 
   useEffect(() => {
     if (editor) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(convertMarkdownToHtml(content));
       setHasChanges(false);
     }
   }, [content, editor]);
