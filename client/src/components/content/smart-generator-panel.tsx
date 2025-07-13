@@ -214,107 +214,113 @@ What would you like to know?`,
   };
 
   return (
-    <div className="space-y-6">
-      {/* Content Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Content Requirements</CardTitle>
-          <p className="text-sm text-gray-600">Select what to include in your content</p>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-64">
-            <div className="space-y-4">
-              {isAnalyzing ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-sm text-gray-600 mt-2">Analyzing content requirements...</p>
-                  </div>
-                </div>
-              ) : (
-                contentRequirements.map((requirement) => (
-                  <div key={requirement.id} className="flex items-start space-x-3">
-                    <Checkbox
-                      checked={requirement.completed}
-                      onCheckedChange={() => toggleRequirement(requirement.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium">{requirement.title}</span>
-                        <Badge 
-                          variant={requirement.priority === 'high' ? 'destructive' : 
-                                  requirement.priority === 'medium' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {requirement.priority}
-                        </Badge>
+    <ScrollArea className="h-full">
+      <div className="space-y-4 p-1">
+        {/* Modern Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Content Requirements */}
+          <Card className="shadow-sm border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-gray-900">Content Requirements</CardTitle>
+              <p className="text-xs text-gray-500">Select what to include in your content</p>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-48">
+                <div className="space-y-2">
+                  {isAnalyzing ? (
+                    <div className="flex items-center justify-center py-6">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-xs text-gray-600 mt-2">Analyzing requirements...</p>
                       </div>
-                      <p className="text-xs text-gray-600">{requirement.description}</p>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+                  ) : (
+                    contentRequirements.map((requirement) => (
+                      <div key={requirement.id} className="flex items-start space-x-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                        <Checkbox
+                          checked={requirement.completed}
+                          onCheckedChange={() => toggleRequirement(requirement.id)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-medium text-gray-900 truncate">{requirement.title}</span>
+                            <Badge 
+                              variant={requirement.priority === 'high' ? 'destructive' : 
+                                      requirement.priority === 'medium' ? 'default' : 'secondary'}
+                              className="text-xs shrink-0"
+                            >
+                              {requirement.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-600 leading-tight">{requirement.description}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
 
-      {/* Content Detail Level */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Content Detail Level</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="detail-level">Detail Level</Label>
-            <Select value={contentDetail} onValueChange={(value: any) => setContentDetail(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select detail level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="brief">Brief (300-500 words)</SelectItem>
-                <SelectItem value="quick">Quick (500-800 words)</SelectItem>
-                <SelectItem value="detailed">Detailed (800-1200 words)</SelectItem>
-                <SelectItem value="comprehensive">Comprehensive (1200+ words)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Content Configuration */}
+          <Card className="shadow-sm border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-gray-900">Content Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="detail-level" className="text-sm font-medium">Detail Level</Label>
+                <Select value={contentDetail} onValueChange={(value: any) => setContentDetail(value)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select detail level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="brief">Brief (300-500 words)</SelectItem>
+                    <SelectItem value="quick">Quick (500-800 words)</SelectItem>
+                    <SelectItem value="detailed">Detailed (800-1200 words)</SelectItem>
+                    <SelectItem value="comprehensive">Comprehensive (1200+ words)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="word-count" className="text-sm font-medium">Target Word Count</Label>
+                <Input
+                  id="word-count"
+                  type="number"
+                  min="200"
+                  max="3000"
+                  value={wordCount}
+                  onChange={(e) => setWordCount(Number(e.target.value))}
+                  placeholder="1000"
+                  className="h-9"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-4">
+          <Button
+            onClick={() => generateContentMutation.mutate()}
+            disabled={contentRequirements.filter(req => req.completed).length === 0 || isGenerating}
+            className="flex-1 h-10 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            {generateContentMutation.isPending ? 'Generating...' : 'Generate Content'}
+          </Button>
           
-          <div>
-            <Label htmlFor="word-count">Target Word Count</Label>
-            <Input
-              id="word-count"
-              type="number"
-              min="200"
-              max="3000"
-              value={wordCount}
-              onChange={(e) => setWordCount(Number(e.target.value))}
-              placeholder="1000"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <Button
-          onClick={() => generateContentMutation.mutate()}
-          disabled={contentRequirements.filter(req => req.completed).length === 0 || isGenerating}
-          className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          {generateContentMutation.isPending ? 'Generating...' : 'Generate Content'}
-        </Button>
-        
-        <Button
-          variant="outline"
-          onClick={() => setShowSmartAssistant(true)}
-          className="flex items-center gap-2"
-        >
-          <Bot className="h-4 w-4" />
-          Smart Assistant
-        </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowSmartAssistant(true)}
+            className="px-4 h-10 border-gray-300 hover:bg-gray-50"
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            Smart Assistant
+          </Button>
+        </div>
       </div>
 
       {/* Smart Assistant Modal */}
@@ -382,6 +388,6 @@ What would you like to know?`,
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </ScrollArea>
   );
 }

@@ -79,7 +79,47 @@ Content Structure Requirements:
 - Include transitional sentences between concepts
 - Build concepts progressively with thorough explanations
 
-Always respond with valid JSON following the exact structure specified.`;
+RESPONSE FORMAT:
+You must respond with a valid JSON object containing these exact fields:
+{
+  "title": "string",
+  "overview": "string",
+  "learningObjectives": ["string"],
+  "lessons": [
+    {
+      "title": "string",
+      "content": "string",
+      "duration": "string",
+      "activities": ["string"],
+      "resources": ["string"]
+    }
+  ],
+  "exercises": [
+    {
+      "title": "string",
+      "description": "string",
+      "instructions": ["string"],
+      "materials": ["string"],
+      "expectedOutcome": "string"
+    }
+  ],
+  "assessments": [
+    {
+      "type": "string",
+      "title": "string",
+      "questions": [
+        {
+          "question": "string",
+          "options": ["string"],
+          "correctAnswer": "string",
+          "explanation": "string"
+        }
+      ]
+    }
+  ]
+}
+
+Always respond with valid JSON following this exact structure.`;
 
     const userPrompt = `Create comprehensive textbook-style content for this course module:
 
