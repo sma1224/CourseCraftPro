@@ -91,11 +91,15 @@ export default function Dashboard() {
 
   const handleOpenVideoProducer = async (projectId: number) => {
     try {
+      console.log('Fetching outline for project:', projectId);
       const response = await fetch(`/api/projects/${projectId}/outlines/active`);
       if (response.ok) {
         const outlineData = await response.json();
+        console.log('Got outline data:', outlineData);
+        console.log('Navigating to:', `/video-producer/${outlineData.id}`);
         navigate(`/video-producer/${outlineData.id}`);
       } else {
+        console.error('Failed to fetch outline:', response.status);
         toast({
           title: "No outline found",
           description: "This project doesn't have a saved outline yet.",
@@ -103,6 +107,7 @@ export default function Dashboard() {
         });
       }
     } catch (error) {
+      console.error('Error fetching outline:', error);
       toast({
         title: "Error",
         description: "Failed to load outline. Please try again.",

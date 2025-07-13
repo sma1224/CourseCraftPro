@@ -20,6 +20,8 @@ export default function VideoProducer() {
   const [selectedModule, setSelectedModule] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('audio');
 
+  console.log('VideoProducer component rendered with outlineId:', outlineId);
+
   const { data: outline, isLoading: outlineLoading } = useQuery({
     queryKey: [`/api/course-outlines/${outlineId}`],
     queryFn: async () => {
