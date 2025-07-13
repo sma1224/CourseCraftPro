@@ -189,6 +189,8 @@ Course Creation Suite is a comprehensive SaaS web application that transforms ho
   - Maintained modular architecture where Video Producer functions as independent app within framework
   - Enhanced user experience with direct access to video production tools from any course project
   - Preserved existing functionality while expanding production capabilities
+  - Removed Video Producer from sidebar navigation to prevent 404 errors since it requires outline ID parameter
+  - Video Producer now only accessible through project-specific buttons ensuring proper functionality
 
 ## User Preferences
 
