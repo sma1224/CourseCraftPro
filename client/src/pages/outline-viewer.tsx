@@ -8,10 +8,13 @@ import { Clock, Users, BookOpen, Target, CheckCircle, FileText, Link, Edit } fro
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { apiRequest } from "@/lib/queryClient";
+import { useState } from "react";
+import OutlineViewerModal from "@/components/course/outline-viewer-modal";
 
 export default function OutlineViewer() {
   const { id } = useParams();
   const [, navigate] = useLocation();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   const { data: outline, isLoading, error } = useQuery({
     queryKey: [`/api/course-outlines/${id}`],
@@ -103,12 +106,8 @@ export default function OutlineViewer() {
                 <Edit className="h-4 w-4" />
                 Content Creator
               </Button>
-              <Button onClick={() => {
-                toast({
-                  title: "Feature Coming Soon",
-                  description: "Edit functionality will be available soon",
-                });
-              }}>
+              <Button onClick={() => setIsEditModalOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
                 Edit Outline
               </Button>
             </div>
@@ -365,6 +364,34 @@ export default function OutlineViewer() {
             </CardContent>
           </Card>
         )}
+
+        {/* Edit Outline Modal */}
+        <OutlineViewerModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          outline={courseData}
+          onSave={async (updatedOutline) => {
+            try {
+              await apiRequest(`/api/course-outlines/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(updatedOutline),
+              });
+              toast({
+                title: "Success",
+                description: "Outline updated successfully",
+              });
+              // Refresh the page data
+              window.location.reload();
+            } catch (error) {
+              console.error('Error updating outline:', error);
+              toast({
+                title: "Error",
+                description: "Failed to update outline",
+                variant: "destructive",
+              });
+            }
+          }}
+        />
       </div>
     </div>
   );

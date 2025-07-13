@@ -36,6 +36,7 @@ import {
   Sparkles,
   Send
 } from "lucide-react";
+import RichTextEditor from "@/components/editor/rich-text-editor";
 
 interface OutlineViewerModalProps {
   isOpen: boolean;
@@ -553,13 +554,14 @@ export default function OutlineViewerModal({
                         Format: {outline.courseType}
                       </span>
                     </div>
-                    <Textarea
-                      value={selectedModule.description}
-                      onChange={(e) => updateModuleField(selectedModuleIndex, 'description', e.target.value)}
-                      className="bg-transparent border-0 px-0 resize-none focus:ring-0 focus:border-b-2 focus:border-blue-500 text-blue-800 dark:text-blue-200"
-                      placeholder="Module description"
-                      rows={3}
-                    />
+                    <div className="border rounded-lg min-h-[120px]">
+                      <RichTextEditor 
+                        content={selectedModule.description}
+                        onSave={(content) => updateModuleField(selectedModuleIndex, 'description', content)}
+                        readOnly={false}
+                        title={`${selectedModule.title} - Description`}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -643,13 +645,14 @@ export default function OutlineViewerModal({
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
-                            <Textarea
-                              value={lesson.description}
-                              onChange={(e) => updateLessonField(selectedModuleIndex, index, 'description', e.target.value)}
-                              className="text-gray-600 dark:text-gray-400 resize-none"
-                              placeholder="Lesson description"
-                              rows={2}
-                            />
+                            <div className="border rounded-lg min-h-[120px]">
+                              <RichTextEditor 
+                                content={lesson.description}
+                                onSave={(content) => updateLessonField(selectedModuleIndex, index, 'description', content)}
+                                readOnly={false}
+                                title={`${lesson.title} - Description`}
+                              />
+                            </div>
                             <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                               {lesson.format.map((format, formatIndex) => {
                                 const IconComponent = getActivityIcon(format);

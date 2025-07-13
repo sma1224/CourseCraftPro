@@ -12,6 +12,7 @@ import { ArrowLeft, BookOpen, Edit, Plus, Eye, Home, ChevronRight, MessageSquare
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import InteractiveContentGenerator from "@/components/content/interactive-content-generator";
+import RichTextEditor from "@/components/editor/rich-text-editor";
 
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
@@ -497,19 +498,22 @@ export default function ContentCreator() {
                 
                 <div>
                   <Label htmlFor="content-body">Content</Label>
-                  <Textarea
-                    id="content-body"
-                    rows={15}
-                    value={typeof editingContent.content === 'string' 
-                      ? editingContent.content 
-                      : JSON.stringify(editingContent.content, null, 2)
-                    }
-                    onChange={(e) => setEditingContent({
-                      ...editingContent,
-                      content: e.target.value
-                    })}
-                    className="font-mono text-sm"
-                  />
+                  <div className="border rounded-lg">
+                    <RichTextEditor 
+                      content={typeof editingContent.content === 'string' 
+                        ? editingContent.content 
+                        : JSON.stringify(editingContent.content, null, 2)
+                      }
+                      onSave={(content) => {
+                        setEditingContent({
+                          ...editingContent,
+                          content
+                        });
+                      }}
+                      readOnly={false}
+                      title={editingContent.title || "Module Content"}
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex gap-2">
