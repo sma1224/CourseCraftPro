@@ -429,16 +429,26 @@ export default function ContentCreator() {
                         courseTitle={outlineData?.title || ''}
                         courseDescription={outlineData?.description || ''}
                         onContentGenerated={(content) => {
-                          // Update the selected module content
-                          setSelectedModule(prev => ({
-                            ...prev,
-                            content: {
-                              ...prev.content,
-                              content: content
-                            }
-                          }));
-                          // Switch to editor tab to show the generated content
-                          setSelectedActiveTab('editor');
+                          try {
+                            console.log('Updating selected module with content:', content);
+                            // Update the selected module content
+                            setSelectedModule(prev => ({
+                              ...prev,
+                              content: {
+                                ...prev.content,
+                                content: content
+                              }
+                            }));
+                            // Switch to editor tab to show the generated content
+                            setSelectedActiveTab('editor');
+                          } catch (error) {
+                            console.error('Error updating module content:', error);
+                            toast({
+                              title: "Update Error",
+                              description: "Failed to update module content. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
                         }}
                       />
                     </div>

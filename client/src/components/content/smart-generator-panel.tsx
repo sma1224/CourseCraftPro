@@ -155,12 +155,22 @@ export default function SmartGeneratorPanel({
       return result.content;
     },
     onSuccess: (content) => {
-      onContentGenerated(content);
-      toast({
-        title: "Content Generated",
-        description: "Comprehensive content has been generated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
+      try {
+        console.log('Generated content:', content);
+        onContentGenerated(content);
+        toast({
+          title: "Content Generated",
+          description: "Comprehensive content has been generated successfully.",
+        });
+        queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
+      } catch (error) {
+        console.error('Error in onContentGenerated:', error);
+        toast({
+          title: "Display Error",
+          description: "Content was generated but failed to display. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
       toast({

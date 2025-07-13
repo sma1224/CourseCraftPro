@@ -60,32 +60,37 @@ export default function RichTextEditor({
 
   // Convert markdown to HTML for proper display
   const convertMarkdownToHtml = (markdown: string): string => {
-    if (!markdown) return '';
+    if (!markdown || typeof markdown !== 'string') return '';
     
-    // Split content into paragraphs first
-    const paragraphs = markdown.split(/\n\s*\n/);
+    try {
+      // Split content into paragraphs first
+      const paragraphs = markdown.split(/\n\s*\n/);
     
-    let html = paragraphs.map(paragraph => {
-      const trimmed = paragraph.trim();
-      if (!trimmed) return '';
+      let html = paragraphs.map(paragraph => {
+        const trimmed = paragraph.trim();
+        if (!trimmed) return '';
+        
+        // Handle headers
+        if (trimmed.startsWith('##')) {
+          const level = trimmed.match(/^#+/)?.[0].length || 2;
+          const text = trimmed.replace(/^#+\s*/, '');
+          return `<h${level}>${text}</h${level}>`;
+        }
+        
+        // Handle regular paragraphs
+        let processed = trimmed
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/\n/g, '<br>');
+        
+        return `<p>${processed}</p>`;
+      }).filter(p => p).join('');
       
-      // Handle headers
-      if (trimmed.startsWith('##')) {
-        const level = trimmed.match(/^#+/)?.[0].length || 2;
-        const text = trimmed.replace(/^#+\s*/, '');
-        return `<h${level}>${text}</h${level}>`;
-      }
-      
-      // Handle regular paragraphs
-      let processed = trimmed
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
-      
-      return `<p>${processed}</p>`;
-    }).filter(p => p).join('');
-    
-    return html;
+      return html;
+    } catch (error) {
+      console.error('Error converting markdown to HTML:', error);
+      return `<p>${markdown}</p>`;
+    }
   };
 
   const editor = useEditor({
@@ -123,17 +128,26 @@ export default function RichTextEditor({
       TableHeader,
       TableCell,
     ],
-    content: convertMarkdownToHtml(content),
+    content: convertMarkdownToHtml(content || ''),
     editable: isEditing,
     onUpdate: ({ editor }) => {
-      setHasChanges(true);
+      try {
+        setHasChanges(true);
+      } catch (error) {
+        console.error('Error in editor update:', error);
+      }
     },
   });
 
   useEffect(() => {
-    if (editor) {
-      editor.commands.setContent(convertMarkdownToHtml(content));
-      setHasChanges(false);
+    if (editor && content !== undefined) {
+      try {
+        const htmlContent = convertMarkdownToHtml(content || '');
+        editor.commands.setContent(htmlContent);
+        setHasChanges(false);
+      } catch (error) {
+        console.error('Error setting editor content:', error);
+      }
     }
   }, [content, editor]);
 
