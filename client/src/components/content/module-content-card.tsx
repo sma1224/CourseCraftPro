@@ -170,19 +170,21 @@ export default function ModuleContentCard({
                       View Content
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
+                  <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+                    <DialogHeader className="flex-shrink-0">
                       <DialogTitle>
                         Module {moduleIndex + 1}: {module.title}
                       </DialogTitle>
                     </DialogHeader>
-                    <div className="mt-4 max-h-[75vh] overflow-y-auto">
-                      <RichTextEditor 
-                        content={moduleContent.content || ''}
-                        onSave={handleContentSave}
-                        title={module.title}
-                        readOnly={false}
-                      />
+                    <div className="flex-1 overflow-hidden">
+                      <div className="h-full border rounded-lg">
+                        <RichTextEditor 
+                          content={moduleContent.content || ''}
+                          onSave={handleContentSave}
+                          title={module.title}
+                          readOnly={false}
+                        />
+                      </div>
                     </div>
                   </DialogContent>
                 </Dialog>

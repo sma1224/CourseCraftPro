@@ -171,8 +171,8 @@ export default function RichTextEditor({
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+    <Card className="w-full h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 flex-shrink-0">
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
         <div className="flex items-center gap-2">
           {!readOnly && (
@@ -390,9 +390,9 @@ export default function RichTextEditor({
         </div>
       )}
       
-      <CardContent className="p-6 pt-0">
+      <CardContent className="p-6 pt-0 flex-1 overflow-hidden">
         <div className={cn(
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none",
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none h-full overflow-y-auto",
           "prose-headings:font-semibold prose-headings:text-gray-900",
           "prose-p:text-gray-700 prose-p:leading-relaxed",
           "prose-strong:text-gray-900 prose-strong:font-semibold",
@@ -409,7 +409,7 @@ export default function RichTextEditor({
           <EditorContent 
             editor={editor}
             className={cn(
-              "focus:outline-none",
+              "focus:outline-none h-full",
               isEditing ? "border rounded-lg p-4 bg-white" : ""
             )}
           />

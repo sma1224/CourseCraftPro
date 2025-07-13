@@ -61,6 +61,8 @@ export default function InteractiveContentGenerator({
   const [wordCount, setWordCount] = useState<number>(1000);
   const [generatedContent, setGeneratedContent] = useState<string>('');
   const [showGeneratedContent, setShowGeneratedContent] = useState(false);
+  const [currentContent, setCurrentContent] = useState<string>('');
+  const [showCurrentContent, setShowCurrentContent] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -68,8 +70,27 @@ export default function InteractiveContentGenerator({
   React.useEffect(() => {
     if (isOpen && chatMessages.length === 0) {
       startContentAnalysis();
+      fetchCurrentContent();
     }
   }, [isOpen]);
+
+  const fetchCurrentContent = async () => {
+    try {
+      const response = await fetch(`/api/outlines/${outlineId}/module-contents`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const moduleContents = await response.json();
+        const currentModuleContent = moduleContents.find((content: any) => content.moduleIndex === moduleIndex);
+        if (currentModuleContent && currentModuleContent.content) {
+          setCurrentContent(currentModuleContent.content);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching current content:', error);
+    }
+  };
 
   const startContentAnalysis = async () => {
     setIsAnalyzing(true);
@@ -300,12 +321,27 @@ export default function InteractiveContentGenerator({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {getPhaseIcon()}
-            Interactive Content Generator - {moduleTitle}
-          </DialogTitle>
-          <div className="text-sm text-gray-500">
-            {getPhaseTitle()}
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                {getPhaseIcon()}
+                Interactive Content Generator - {moduleTitle}
+              </DialogTitle>
+              <div className="text-sm text-gray-500">
+                {getPhaseTitle()}
+              </div>
+            </div>
+            {currentContent && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowCurrentContent(true)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                View Current Content
+              </Button>
+            )}
           </div>
         </DialogHeader>
         
@@ -526,6 +562,25 @@ export default function InteractiveContentGenerator({
           </div>
         </div>
       </DialogContent>
+      
+      {/* Current Content Viewer Modal */}
+      <Dialog open={showCurrentContent} onOpenChange={setShowCurrentContent}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Current Module Content - {moduleTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full border rounded-lg">
+              <RichTextEditor 
+                content={currentContent}
+                onSave={() => {}}
+                title={moduleTitle}
+                readOnly={true}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
