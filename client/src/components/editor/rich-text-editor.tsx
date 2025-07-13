@@ -57,6 +57,10 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const [isEditing, setIsEditing] = useState(!readOnly);
   const [hasChanges, setHasChanges] = useState(false);
+  
+  console.log('RichTextEditor received content:', content);
+  console.log('Content type:', typeof content);
+  console.log('Content length:', content?.length || 0);
 
   // Convert markdown to HTML for proper display
   const convertMarkdownToHtml = (markdown: string): string => {

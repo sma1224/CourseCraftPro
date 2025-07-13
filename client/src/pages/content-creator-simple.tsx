@@ -16,6 +16,65 @@ import RichTextEditor from "@/components/editor/rich-text-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SmartGeneratorPanel from "@/components/content/smart-generator-panel";
 
+// Helper function to extract readable content from module content JSON
+const extractContentForDisplay = (moduleContent: any): string => {
+  if (!moduleContent || !moduleContent.content) return '';
+  
+  const content = moduleContent.content;
+  
+  // If content is already a string, return it
+  if (typeof content === 'string') return content;
+  
+  // If content is a JSON object, extract readable text
+  if (typeof content === 'object') {
+    let displayText = '';
+    
+    // Add title if available
+    if (content.title) {
+      displayText += `# ${content.title}\n\n`;
+    }
+    
+    // Add overview if available
+    if (content.overview) {
+      displayText += `## Overview\n\n${content.overview}\n\n`;
+    }
+    
+    // Add learning objectives if available
+    if (content.learningObjectives && Array.isArray(content.learningObjectives)) {
+      displayText += `## Learning Objectives\n\n`;
+      content.learningObjectives.forEach((obj: string, index: number) => {
+        displayText += `${index + 1}. ${obj}\n`;
+      });
+      displayText += '\n';
+    }
+    
+    // Add lessons if available
+    if (content.lessons && Array.isArray(content.lessons)) {
+      content.lessons.forEach((lesson: any, index: number) => {
+        displayText += `## Lesson ${index + 1}: ${lesson.title}\n\n`;
+        if (lesson.content) {
+          displayText += `${lesson.content}\n\n`;
+        }
+      });
+    }
+    
+    // Add exercises if available
+    if (content.exercises && Array.isArray(content.exercises)) {
+      displayText += `## Exercises\n\n`;
+      content.exercises.forEach((exercise: any, index: number) => {
+        displayText += `### Exercise ${index + 1}: ${exercise.title}\n\n`;
+        if (exercise.description) {
+          displayText += `${exercise.description}\n\n`;
+        }
+      });
+    }
+    
+    return displayText;
+  }
+  
+  return '';
+};
+
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
   const [, navigate] = useLocation();
@@ -218,6 +277,7 @@ export default function ContentCreator() {
                           className="w-full"
                           onClick={() => {
                             console.log('Viewing content for module:', hasContent);
+                            console.log('Module content structure:', JSON.stringify(hasContent, null, 2));
                             setSelectedModule({ ...module, index, content: hasContent });
                           }}
                         >
@@ -386,8 +446,9 @@ export default function ContentCreator() {
                     <div className="h-full border rounded-lg">
                       {console.log('Selected module content:', selectedModule.content)}
                       {console.log('Content to display:', selectedModule.content?.content)}
+                      {console.log('Extracted content:', extractContentForDisplay(selectedModule.content))}
                       <RichTextEditor 
-                        content={selectedModule.content?.content || ''}
+                        content={extractContentForDisplay(selectedModule.content)}
                         onSave={(content) => {
                           // Update the content using the API
                           if (selectedModule.content?.id) {
@@ -433,12 +494,12 @@ export default function ContentCreator() {
                         onContentGenerated={(content) => {
                           try {
                             console.log('Updating selected module with content:', content);
-                            // Update the selected module content
+                            // Update the selected module content with the generated JSON content
                             setSelectedModule(prev => ({
                               ...prev,
                               content: {
                                 ...prev.content,
-                                content: content
+                                content: content // This will be a JSON object from the generator
                               }
                             }));
                             // Switch to editor tab to show the generated content
