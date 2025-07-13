@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Clock, BookOpen, FileText, Plus, CheckCircle, AlertCircle, Eye, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Clock, BookOpen, FileText, Plus, CheckCircle, AlertCircle, Eye, Sparkles, Edit } from "lucide-react";
 import RichTextEditor from "@/components/editor/rich-text-editor";
+import SmartGeneratorPanel from "@/components/content/smart-generator-panel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +17,8 @@ interface ModuleContentCardProps {
   moduleIndex: number;
   onCreateContent: () => void;
   outlineId: number;
+  courseTitle?: string;
+  courseDescription?: string;
 }
 
 export default function ModuleContentCard({ 
@@ -22,9 +26,12 @@ export default function ModuleContentCard({
   moduleContent, 
   moduleIndex, 
   onCreateContent,
-  outlineId 
+  outlineId,
+  courseTitle = '',
+  courseDescription = ''
 }: ModuleContentCardProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("editor");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -176,20 +183,57 @@ export default function ModuleContentCard({
                         Module {moduleIndex + 1}: {module.title}
                       </DialogTitle>
                     </DialogHeader>
+                    
                     <div className="flex-1 overflow-hidden">
-                      <div className="h-full border rounded-lg">
-                        <RichTextEditor 
-                          content={moduleContent.content || ''}
-                          onSave={handleContentSave}
-                          title={module.title}
-                          readOnly={false}
-                        />
-                      </div>
+                      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                        <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+                          <TabsTrigger value="editor" className="flex items-center gap-2">
+                            <Edit className="h-4 w-4" />
+                            Content Editor
+                          </TabsTrigger>
+                          <TabsTrigger value="generator" className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            Smart Generator
+                          </TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="editor" className="flex-1 overflow-hidden mt-4">
+                          <div className="h-full border rounded-lg">
+                            <RichTextEditor 
+                              content={moduleContent.content || ''}
+                              onSave={handleContentSave}
+                              title={module.title}
+                              readOnly={false}
+                            />
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="generator" className="flex-1 overflow-hidden mt-4">
+                          <div className="h-full overflow-y-auto">
+                            <SmartGeneratorPanel
+                              module={module}
+                              moduleIndex={moduleIndex}
+                              outlineId={outlineId}
+                              courseTitle={courseTitle}
+                              courseDescription={courseDescription}
+                              onContentGenerated={(content) => {
+                                // Update the module content through the mutation
+                                handleContentSave(content);
+                                // Switch to editor tab to show the generated content
+                                setActiveTab('editor');
+                              }}
+                            />
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </div>
                   </DialogContent>
                 </Dialog>
                 <Button 
-                  onClick={onCreateContent}
+                  onClick={() => {
+                    setActiveTab('generator');
+                    setIsViewerOpen(true);
+                  }}
                   variant="default"
                   className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                 >
@@ -199,7 +243,10 @@ export default function ModuleContentCard({
               </div>
             ) : (
               <Button 
-                onClick={onCreateContent}
+                onClick={() => {
+                  setActiveTab('generator');
+                  setIsViewerOpen(true);
+                }}
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
               >
                 <Sparkles className="h-4 w-4 mr-2" />

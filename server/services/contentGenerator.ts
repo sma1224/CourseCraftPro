@@ -53,14 +53,12 @@ export interface GeneratedModuleContent {
 }
 
 export async function generateModuleContent(
-  request: ContentGenerationRequest,
-  moduleData: any,
-  courseContext: any
+  request: ContentGenerationRequest | any
 ): Promise<GeneratedModuleContent> {
   try {
     console.log("Starting module content generation:", {
       moduleIndex: request.moduleIndex,
-      moduleTitle: moduleData.title
+      moduleTitle: request.moduleTitle
     });
 
     const systemPrompt = `You are an expert instructional designer and textbook author. Your task is to create comprehensive, detailed educational content that reads like a professional textbook chapter.
@@ -86,24 +84,24 @@ Always respond with valid JSON following the exact structure specified.`;
     const userPrompt = `Create comprehensive textbook-style content for this course module:
 
 **Module Information:**
-- Title: ${moduleData.title}
-- Description: ${moduleData.description}
-- Learning Objectives: ${moduleData.learningObjectives?.join(', ') || 'Not specified'}
-- Duration: ${moduleData.duration || 'Not specified'}
+- Title: ${request.moduleTitle}
+- Description: ${request.moduleDescription}
+- Learning Objectives: ${request.learningObjectives?.join(', ') || 'Not specified'}
+- Duration: ${request.duration || 'Not specified'}
 
 **Course Context:**
-- Course Title: ${courseContext.title}
-- Target Audience: ${courseContext.targetAudience}
-- Course Type: ${courseContext.courseType}
-- Overall Objectives: ${courseContext.learningObjectives?.join(', ') || 'Not specified'}
+- Course Title: ${request.courseTitle}
+- Course Description: ${request.courseDescription}
+- Target Audience: ${request.targetAudience || 'general'}
+- Content Type: ${request.contentType || 'detailed'}
 
 **Content Requirements:**
-${request.userPrompt}
+${request.selectedRequirements ? request.selectedRequirements.map((r: any) => `- ${r.title}: ${r.description}`).join('\n') : ''}
 
 **CRITICAL INSTRUCTIONS:**
 
-TARGET WORD COUNT: ${request.wordCount || 1000} words MINIMUM
-CONTENT DETAIL LEVEL: ${request.contentDetail || 'detailed'}
+TARGET WORD COUNT: ${request.targetWordCount || 1000} words MINIMUM
+CONTENT DETAIL LEVEL: ${request.contentType || 'detailed'}
 
 **FORMATTING REQUIREMENTS:**
 - Use proper markdown formatting with clear headers and subheaders
@@ -113,10 +111,10 @@ CONTENT DETAIL LEVEL: ${request.contentDetail || 'detailed'}
 - Format as professional courseware reading material
 
 **CONTENT REQUIREMENTS:**
-${request.contentDetail === 'brief' ? '- Write 300-500 words of concise but complete explanations' : ''}
-${request.contentDetail === 'quick' ? '- Write 500-800 words with clear explanations and essential details' : ''}
-${request.contentDetail === 'detailed' ? '- Write 800-1200 words with comprehensive coverage, examples, and detailed explanations' : ''}
-${request.contentDetail === 'comprehensive' ? '- Write 1200+ words with in-depth analysis, multiple examples, case studies, and thorough coverage' : ''}
+${request.contentType === 'brief' ? '- Write 300-500 words of concise but complete explanations' : ''}
+${request.contentType === 'quick' ? '- Write 500-800 words with clear explanations and essential details' : ''}
+${request.contentType === 'detailed' ? '- Write 800-1200 words with comprehensive coverage, examples, and detailed explanations' : ''}
+${request.contentType === 'comprehensive' ? '- Write 1200+ words with in-depth analysis, multiple examples, case studies, and thorough coverage' : ''}
 
 **WRITING STYLE:**
 - Write in full paragraphs with academic depth suitable for courseware
