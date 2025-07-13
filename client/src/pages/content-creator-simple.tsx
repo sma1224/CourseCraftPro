@@ -427,18 +427,68 @@ export default function ContentCreator() {
                 <DialogTitle>
                   Module {selectedModule.index + 1}: {selectedModule.title}
                 </DialogTitle>
+                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg">
+                  <h4 className="font-medium text-sm mb-2">6-Step Professional Course Development Workflow</h4>
+                  <div className="flex items-center space-x-2 text-xs">
+                    <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Course Outline
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Detail Development
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      Audio Scripts
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      Slides/Recording
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      AI Voiceover
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      TV Voiceover
+                    </div>
+                  </div>
+                </div>
               </DialogHeader>
               
               <div className="flex-1 overflow-hidden">
                 <Tabs value={selectedActiveTab} onValueChange={setSelectedActiveTab} className="h-full flex flex-col">
-                  <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
-                    <TabsTrigger value="editor" className="flex items-center gap-2">
-                      <Edit className="h-4 w-4" />
+                  <TabsList className="grid w-full grid-cols-6 flex-shrink-0">
+                    <TabsTrigger value="editor" className="flex items-center gap-1 text-xs">
+                      <Edit className="w-3 h-3" />
                       Content Editor
                     </TabsTrigger>
-                    <TabsTrigger value="generator" className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      Smart Generator
+                    <TabsTrigger value="generator" className="flex items-center gap-1 text-xs bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700">
+                      <Sparkles className="w-3 h-3" />
+                      Detail Development
+                    </TabsTrigger>
+                    <TabsTrigger value="audio" className="flex items-center gap-1 text-xs">
+                      <MessageSquare className="w-3 h-3" />
+                      Audio Scripts
+                    </TabsTrigger>
+                    <TabsTrigger value="slides" className="flex items-center gap-1 text-xs">
+                      <Eye className="w-3 h-3" />
+                      Slides/Recording
+                    </TabsTrigger>
+                    <TabsTrigger value="video-ai" className="flex items-center gap-1 text-xs">
+                      <Bot className="w-3 h-3" />
+                      AI Voiceover
+                    </TabsTrigger>
+                    <TabsTrigger value="video-tv" className="flex items-center gap-1 text-xs">
+                      <BookOpen className="w-3 h-3" />
+                      TV Voiceover
                     </TabsTrigger>
                   </TabsList>
                   
@@ -514,6 +564,114 @@ export default function ContentCreator() {
                           }
                         }}
                       />
+                    </div>
+                  </TabsContent>
+                  
+                  {/* Audio Scripts Tab */}
+                  <TabsContent value="audio" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full border rounded-lg p-6">
+                      <div className="text-center py-8">
+                        <MessageSquare className="mx-auto h-12 w-12 text-blue-500 mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Audio Script Generation</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          Generate audio-only versions for podcast-style learning or offline access
+                        </p>
+                        <div className="space-y-4">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2">Features:</h4>
+                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              <li>• Generate clean, adapted audio scripts</li>
+                              <li>• Use AI tools to generate or record voice</li>
+                              <li>• Export audio scripts (text format)</li>
+                            </ul>
+                          </div>
+                          <Button className="w-full" disabled>
+                            Generate Audio Script
+                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  {/* Slides/Recording Tab */}
+                  <TabsContent value="slides" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full border rounded-lg p-6">
+                      <div className="text-center py-8">
+                        <Eye className="mx-auto h-12 w-12 text-green-500 mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Slides & Screen Recording</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          Create engaging slide decks or record on-screen demonstrations
+                        </p>
+                        <div className="space-y-4">
+                          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2">Features:</h4>
+                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              <li>• Create engaging slide decks</li>
+                              <li>• Sync voiceover or add subtitles</li>
+                              <li>• Record on-screen demonstrations</li>
+                            </ul>
+                          </div>
+                          <Button className="w-full" disabled>
+                            Create Slides
+                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  {/* AI Voiceover Tab */}
+                  <TabsContent value="video-ai" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full border rounded-lg p-6">
+                      <div className="text-center py-8">
+                        <Bot className="mx-auto h-12 w-12 text-purple-500 mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">AI Voiceover Video Creation</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          Turn lesson scripts into instructional videos with AI-generated voiceover
+                        </p>
+                        <div className="space-y-4">
+                          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2">Features:</h4>
+                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              <li>• Use AI tools for generated videos</li>
+                              <li>• Create scenes/slides for visual storytelling</li>
+                              <li>• Auto-generated voiceover narration</li>
+                            </ul>
+                          </div>
+                          <Button className="w-full" disabled>
+                            Generate AI Video
+                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  {/* TV Voiceover Tab */}
+                  <TabsContent value="video-tv" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full border rounded-lg p-6">
+                      <div className="text-center py-8">
+                        <BookOpen className="mx-auto h-12 w-12 text-indigo-500 mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">TV Voiceover Video Creation</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          Create professional videos with human-like TV voiceover narration
+                        </p>
+                        <div className="space-y-4">
+                          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2">Features:</h4>
+                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              <li>• Professional TV-quality voiceover</li>
+                              <li>• Create scenes/slides for visual storytelling</li>
+                              <li>• High-quality instructional videos</li>
+                            </ul>
+                          </div>
+                          <Button className="w-full" disabled>
+                            Generate TV Video
+                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
