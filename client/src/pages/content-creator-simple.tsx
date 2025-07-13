@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, BookOpen, Edit, Plus, Eye, Home, ChevronRight, MessageSquare, Bot, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import InteractiveContentGenerator from "@/components/content/interactive-content-generator";
+
 import RichTextEditor from "@/components/editor/rich-text-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SmartGeneratorPanel from "@/components/content/smart-generator-panel";
@@ -22,11 +22,7 @@ export default function ContentCreator() {
   const queryClient = useQueryClient();
   const [selectedModule, setSelectedModule] = useState<any>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
-  const [interactiveGeneratorOpen, setInteractiveGeneratorOpen] = useState(false);
-  const [currentModuleForGeneration, setCurrentModuleForGeneration] = useState<any>(null);
-  const [showSmartAssistant, setShowSmartAssistant] = useState(false);
-  const [assistantMessages, setAssistantMessages] = useState<any[]>([]);
-  const [currentAssistantMessage, setCurrentAssistantMessage] = useState("");
+
   const [selectedActiveTab, setSelectedActiveTab] = useState("editor");
 
   const { data: outline, isLoading, error } = useQuery({
@@ -232,15 +228,12 @@ export default function ContentCreator() {
                           variant="default"
                           className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                           onClick={() => {
-                            setCurrentModuleForGeneration({
-                              ...module,
-                              index,
-                              description: module.description || `Module ${index + 1} covering ${module.title.toLowerCase()}`
-                            });
-                            setInteractiveGeneratorOpen(true);
+                            console.log('Opening Smart Generator for module:', hasContent);
+                            setSelectedModule({ ...module, index, content: hasContent });
+                            setSelectedActiveTab('generator');
                           }}
                         >
-                          <MessageSquare className="h-4 w-4 mr-2" />
+                          <Sparkles className="h-4 w-4 mr-2" />
                           Smart Generator
                         </Button>
                         <Button 
@@ -293,15 +286,12 @@ export default function ContentCreator() {
                           variant="default"
                           className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                           onClick={() => {
-                            setCurrentModuleForGeneration({
-                              ...module,
-                              index,
-                              description: module.description || `Module ${index + 1} covering ${module.title.toLowerCase()}`
-                            });
-                            setInteractiveGeneratorOpen(true);
+                            console.log('Opening Smart Generator for new module:', module);
+                            setSelectedModule({ ...module, index, content: null });
+                            setSelectedActiveTab('generator');
                           }}
                         >
-                          <MessageSquare className="h-4 w-4 mr-2" />
+                          <Sparkles className="h-4 w-4 mr-2" />
                           Smart Generator
                         </Button>
                         <Button 
@@ -532,22 +522,7 @@ export default function ContentCreator() {
           </Dialog>
         )}
 
-        {/* Interactive Content Generator Modal */}
-        {interactiveGeneratorOpen && currentModuleForGeneration && (
-          <InteractiveContentGenerator
-            isOpen={interactiveGeneratorOpen}
-            onClose={() => {
-              setInteractiveGeneratorOpen(false);
-              setCurrentModuleForGeneration(null);
-            }}
-            moduleTitle={currentModuleForGeneration.title}
-            moduleDescription={currentModuleForGeneration.description}
-            moduleIndex={currentModuleForGeneration.index}
-            outlineId={parseInt(outlineId || '0')}
-            courseTitle={outline?.title || ''}
-            courseDescription={outline?.description || ''}
-          />
-        )}
+
       </div>
     </div>
   );
