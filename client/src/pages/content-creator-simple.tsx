@@ -8,11 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, BookOpen, Edit, Plus, Eye, Home, ChevronRight, MessageSquare } from "lucide-react";
+import { ArrowLeft, BookOpen, Edit, Plus, Eye, Home, ChevronRight, MessageSquare, Bot, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import InteractiveContentGenerator from "@/components/content/interactive-content-generator";
 import RichTextEditor from "@/components/editor/rich-text-editor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SmartGeneratorPanel from "@/components/content/smart-generator-panel";
 
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
@@ -22,6 +24,10 @@ export default function ContentCreator() {
   const [editingContent, setEditingContent] = useState<any>(null);
   const [interactiveGeneratorOpen, setInteractiveGeneratorOpen] = useState(false);
   const [currentModuleForGeneration, setCurrentModuleForGeneration] = useState<any>(null);
+  const [showSmartAssistant, setShowSmartAssistant] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState<any[]>([]);
+  const [currentAssistantMessage, setCurrentAssistantMessage] = useState("");
+  const [selectedActiveTab, setSelectedActiveTab] = useState("editor");
 
   const { data: outline, isLoading, error } = useQuery({
     queryKey: [`/api/course-outlines/${outlineId}`],
@@ -366,116 +372,94 @@ export default function ContentCreator() {
         {/* Content Viewer Modal */}
         {selectedModule && (
           <Dialog open={!!selectedModule} onOpenChange={() => setSelectedModule(null)}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>
                   Module {selectedModule.index + 1}: {selectedModule.title}
                 </DialogTitle>
               </DialogHeader>
               
-              <div className="space-y-6">
-                {selectedModule.content && (
-                  <div className="prose max-w-none">
-                    <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
-                      <h3 className="text-lg font-semibold mb-4">Generated Content</h3>
-                      <div className="prose prose-sm max-w-none">
-                        <div 
-                          className="whitespace-pre-wrap text-sm leading-relaxed"
-                          style={{ 
-                            fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-                            lineHeight: '1.6'
-                          }}
-                        >
-                          {(() => {
-                            const content = selectedModule.content.content;
-                            
-                            // Handle new markdown format (string)
-                            if (typeof content === 'string') {
-                              return content;
-                            }
-                            
-                            // Handle old JSON format - convert to readable text
-                            if (typeof content === 'object' && content !== null) {
-                              let formatted = `# ${content.title || selectedModule.content.title}\n\n`;
-                              
-                              if (content.overview) {
-                                formatted += `## Overview\n${content.overview}\n\n`;
-                              }
-                              
-                              if (content.lessons && Array.isArray(content.lessons)) {
-                                formatted += `## Lessons\n\n`;
-                                content.lessons.forEach((lesson: any, idx: number) => {
-                                  formatted += `### Lesson ${idx + 1}: ${lesson.title}\n`;
-                                  formatted += `${lesson.content}\n`;
-                                  formatted += `**Duration:** ${lesson.duration}\n\n`;
-                                  if (lesson.activities && lesson.activities.length > 0) {
-                                    formatted += `**Activities:**\n${lesson.activities.map((a: string) => `- ${a}`).join('\n')}\n\n`;
-                                  }
-                                });
-                              }
-                              
-                              if (content.exercises && Array.isArray(content.exercises)) {
-                                formatted += `## Exercises\n\n`;
-                                content.exercises.forEach((exercise: any, idx: number) => {
-                                  formatted += `### Exercise ${idx + 1}: ${exercise.title}\n`;
-                                  formatted += `${exercise.description}\n\n`;
-                                  if (exercise.instructions) {
-                                    formatted += `**Instructions:**\n${exercise.instructions.map((i: string) => `${i}`).join('\n')}\n\n`;
-                                  }
-                                });
-                              }
-                              
-                              if (content.assessments && Array.isArray(content.assessments)) {
-                                formatted += `## Assessments\n\n`;
-                                content.assessments.forEach((assessment: any, idx: number) => {
-                                  formatted += `### ${assessment.type}: ${assessment.title}\n`;
-                                  if (assessment.questions) {
-                                    assessment.questions.forEach((q: any, qIdx: number) => {
-                                      formatted += `**Question ${qIdx + 1}:** ${q.question}\n`;
-                                      if (q.options) {
-                                        formatted += q.options.map((opt: string, optIdx: number) => `${String.fromCharCode(65 + optIdx)}. ${opt}`).join('\n') + '\n';
-                                      }
-                                      if (q.correctAnswer) {
-                                        formatted += `**Correct Answer:** ${q.correctAnswer}\n`;
-                                      }
-                                      formatted += '\n';
-                                    });
-                                  }
-                                });
-                              }
-                              
-                              return formatted;
-                            }
-                            
-                            // Fallback for any other format
-                            return JSON.stringify(content, null, 2);
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2 mt-4">
-                      <Button
-                        onClick={() => {
-                          setEditingContent(selectedModule.content);
-                          setSelectedModule(null);
+              <div className="flex-1 overflow-hidden">
+                <Tabs value={selectedActiveTab} onValueChange={setSelectedActiveTab} className="h-full flex flex-col">
+                  <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+                    <TabsTrigger value="editor" className="flex items-center gap-2">
+                      <Edit className="h-4 w-4" />
+                      Content Editor
+                    </TabsTrigger>
+                    <TabsTrigger value="generator" className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Smart Generator
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="editor" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full border rounded-lg">
+                      <RichTextEditor 
+                        content={selectedModule.content?.content || ''}
+                        onSave={(content) => {
+                          // Update the content using the API
+                          if (selectedModule.content?.id) {
+                            fetch(`/api/module-content/${selectedModule.content.id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              credentials: 'include',
+                              body: JSON.stringify({
+                                title: selectedModule.title,
+                                content: content
+                              })
+                            }).then(() => {
+                              toast({
+                                title: "Content Updated",
+                                description: "Module content has been saved successfully.",
+                              });
+                              queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
+                            }).catch(() => {
+                              toast({
+                                title: "Update Failed",
+                                description: "Failed to save content changes. Please try again.",
+                                variant: "destructive",
+                              });
+                            });
+                          }
                         }}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Content
-                      </Button>
-                      <Button variant="outline" onClick={() => setSelectedModule(null)}>
-                        Close
-                      </Button>
+                        readOnly={false}
+                        title={selectedModule.title}
+                      />
                     </div>
-                  </div>
-                )}
+                  </TabsContent>
+                  
+                  <TabsContent value="generator" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full overflow-y-auto">
+                      <SmartGeneratorPanel
+                        module={selectedModule}
+                        moduleIndex={selectedModule.index}
+                        outlineId={parseInt(outlineId || '0')}
+                        courseTitle={outlineData?.title || ''}
+                        courseDescription={outlineData?.description || ''}
+                        onContentGenerated={(content) => {
+                          // Update the selected module content
+                          setSelectedModule(prev => ({
+                            ...prev,
+                            content: {
+                              ...prev.content,
+                              content: content
+                            }
+                          }));
+                          // Switch to editor tab to show the generated content
+                          setSelectedActiveTab('editor');
+                        }}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             </DialogContent>
           </Dialog>
         )}
 
-        {/* Content Editor Modal */}
+        {/* Legacy Content Editor Modal - Remove if not needed */}
         {editingContent && (
           <Dialog open={!!editingContent} onOpenChange={() => setEditingContent(null)}>
             <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -502,57 +486,43 @@ export default function ContentCreator() {
                     <RichTextEditor 
                       content={typeof editingContent.content === 'string' 
                         ? editingContent.content 
-                        : JSON.stringify(editingContent.content, null, 2)
-                      }
+                        : JSON.stringify(editingContent.content, null, 2)}
                       onSave={(content) => {
-                        setEditingContent({
-                          ...editingContent,
-                          content
-                        });
+                        // Update the content using the API
+                        if (editingContent.id) {
+                          fetch(`/api/module-content/${editingContent.id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                              title: editingContent.title,
+                              content: content
+                            })
+                          }).then(() => {
+                            toast({
+                              title: "Content Updated",
+                              description: "Module content has been saved successfully.",
+                            });
+                            queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
+                            setEditingContent(null);
+                          }).catch(() => {
+                            toast({
+                              title: "Update Failed",
+                              description: "Failed to save content changes. Please try again.",
+                              variant: "destructive",
+                            });
+                          });
+                        }
                       }}
                       readOnly={false}
-                      title={editingContent.title || "Module Content"}
+                      title={editingContent.title}
                     />
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(`/api/module-content/${editingContent.id}`, {
-                          method: 'PATCH',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          credentials: 'include',
-                          body: JSON.stringify({
-                            title: editingContent.title,
-                            content: editingContent.content,
-                          }),
-                        });
-
-                        if (response.ok) {
-                          queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/module-contents`] });
-                          setEditingContent(null);
-                          toast({
-                            title: "Content Updated",
-                            description: "Your changes have been saved successfully.",
-                          });
-                        } else {
-                          throw new Error('Failed to save changes');
-                        }
-                      } catch (error) {
-                        toast({
-                          title: "Save Error",
-                          description: "Failed to save changes. Please try again.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    Save Changes
-                  </Button>
+                <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setEditingContent(null)}>
                     Cancel
                   </Button>
@@ -562,8 +532,8 @@ export default function ContentCreator() {
           </Dialog>
         )}
 
-        {/* Interactive Content Generator */}
-        {currentModuleForGeneration && (
+        {/* Interactive Content Generator Modal */}
+        {interactiveGeneratorOpen && currentModuleForGeneration && (
           <InteractiveContentGenerator
             isOpen={interactiveGeneratorOpen}
             onClose={() => {

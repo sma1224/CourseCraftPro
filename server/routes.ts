@@ -727,38 +727,17 @@ Let's customize the content requirements below to ensure we create valuable, in-
         },
         {
           id: 'case-studies',
-          title: 'Industry Case Studies',
-          description: 'Real-world scenarios and case studies from industry applications',
+          title: 'Real-World Case Studies',
+          description: 'Industry examples and scenarios for practical application',
           completed: false,
           priority: 'medium' as const
         },
         {
           id: 'assessments',
-          title: 'Comprehensive Assessments',
-          description: 'Quizzes, practical tests, and knowledge validation exercises',
-          completed: true,
-          priority: 'high' as const
-        },
-        {
-          id: 'advanced-topics',
-          title: 'Advanced Topics & Extensions',
-          description: 'Advanced concepts, edge cases, and emerging trends in the field',
+          title: 'Knowledge Assessments',
+          description: 'Quizzes, self-check questions, and evaluation tools',
           completed: false,
           priority: 'low' as const
-        },
-        {
-          id: 'resources',
-          title: 'Learning Resources & References',
-          description: 'Curated resources, further reading, tools, and reference materials',
-          completed: true,
-          priority: 'medium' as const
-        },
-        {
-          id: 'troubleshooting',
-          title: 'Common Challenges & Solutions',
-          description: 'Troubleshooting guide, common mistakes, and solution strategies',
-          completed: false,
-          priority: 'medium' as const
         }
       ];
 
@@ -766,6 +745,120 @@ Let's customize the content requirements below to ensure we create valuable, in-
     } catch (error) {
       console.error('Error analyzing content requirements:', error);
       res.status(500).json({ error: 'Failed to analyze content requirements' });
+    }
+  });
+
+  // Generate comprehensive content with smart generator
+  app.post('/api/generate-comprehensive-content', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { 
+        outlineId, 
+        moduleIndex, 
+        moduleTitle, 
+        moduleDescription, 
+        courseTitle, 
+        courseDescription,
+        requirements,
+        detailLevel,
+        targetWordCount
+      } = req.body;
+      
+      console.log('Generating comprehensive content for:', { outlineId, moduleIndex, moduleTitle });
+      
+      // Verify the outline exists and belongs to the user
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Outline not found" });
+      }
+      
+      // Check if user owns the project
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Build content request with smart generator requirements
+      const contentRequest = {
+        moduleTitle,
+        moduleDescription,
+        courseTitle,
+        courseDescription,
+        contentType: detailLevel || 'detailed',
+        targetAudience: 'general',
+        duration: '60 minutes',
+        includeExercises: requirements.some((r: any) => r.id === 'interactive-exercises' && r.completed),
+        includeCaseStudies: requirements.some((r: any) => r.id === 'case-studies' && r.completed),
+        includeAssessments: requirements.some((r: any) => r.id === 'assessments' && r.completed),
+        followUpResponses: [],
+        targetWordCount: targetWordCount || 1000,
+        selectedRequirements: requirements.filter((r: any) => r.completed)
+      };
+      
+      // Generate content using the enhanced content generator
+      const generatedContent = await generateModuleContent(contentRequest);
+      
+      // Update or create module content
+      const existingContent = await storage.getOutlineModuleContents(outlineId);
+      const moduleContent = existingContent.find((mc: any) => mc.moduleIndex === moduleIndex);
+      
+      if (moduleContent) {
+        await storage.updateModuleContent(moduleContent.id, {
+          title: moduleTitle,
+          content: generatedContent,
+          status: 'complete'
+        });
+      } else {
+        await storage.createModuleContent({
+          outlineId,
+          moduleIndex,
+          title: moduleTitle,
+          content: generatedContent,
+          status: 'complete'
+        });
+      }
+      
+      res.json({ success: true, content: generatedContent });
+    } catch (error) {
+      console.error('Error generating comprehensive content:', error);
+      res.status(500).json({ error: 'Failed to generate comprehensive content' });
+    }
+  });
+
+  // Update module content with PUT method
+  app.put('/api/module-content/:id', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { title, content } = req.body;
+      
+      // Verify the module content exists and belongs to the user
+      const moduleContent = await storage.getModuleContent(parseInt(id));
+      if (!moduleContent) {
+        return res.status(404).json({ message: "Module content not found" });
+      }
+      
+      // Check if user owns the outline through the project
+      const outline = await storage.getCourseOutline(moduleContent.outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedContent = await storage.updateModuleContent(parseInt(id), {
+        title,
+        content,
+        status: 'complete'
+      });
+      
+      res.json({ success: true, content: updatedContent });
+    } catch (error) {
+      console.error('Error updating module content:', error);
+      res.status(500).json({ error: 'Failed to update module content' });
     }
   });
 
