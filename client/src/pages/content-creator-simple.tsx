@@ -384,6 +384,8 @@ export default function ContentCreator() {
                   
                   <TabsContent value="editor" className="flex-1 overflow-hidden mt-4">
                     <div className="h-full border rounded-lg">
+                      {console.log('Selected module content:', selectedModule.content)}
+                      {console.log('Content to display:', selectedModule.content?.content)}
                       <RichTextEditor 
                         content={selectedModule.content?.content || ''}
                         onSave={(content) => {
