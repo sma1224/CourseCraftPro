@@ -268,7 +268,7 @@ export default function VideoProducer() {
               onSlidesGenerated={(slides) => {
                 toast({
                   title: "Slides Generated",
-                  description: "Slide deck has been generated successfully.",
+                  description: "Slide presentation has been generated successfully.",
                 });
               }}
             />
@@ -281,8 +281,8 @@ export default function VideoProducer() {
               courseTitle={outline?.title || ''}
               onVideoGenerated={(video) => {
                 toast({
-                  title: "Video Generated",
-                  description: "AI video has been generated successfully.",
+                  title: "AI Video Generated",
+                  description: "AI voiceover video has been generated successfully.",
                 });
               }}
             />
@@ -295,8 +295,8 @@ export default function VideoProducer() {
               courseTitle={outline?.title || ''}
               onVideoGenerated={(video) => {
                 toast({
-                  title: "Video Generated",
-                  description: "TV-quality video has been generated successfully.",
+                  title: "TV Video Generated",
+                  description: "TV-style video has been generated successfully.",
                 });
               }}
             />

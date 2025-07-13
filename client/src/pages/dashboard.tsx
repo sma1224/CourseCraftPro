@@ -394,7 +394,10 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleOpenVideoProducer(project.id)}
+                            onClick={() => {
+                              console.log('Video Producer button clicked for project:', project.id);
+                              handleOpenVideoProducer(project.id);
+                            }}
                             className="text-purple-600 hover:text-purple-700"
                           >
                             Video Producer
