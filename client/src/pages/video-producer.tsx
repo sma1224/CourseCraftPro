@@ -84,9 +84,46 @@ export default function VideoProducer() {
                 <p className="text-gray-600 dark:text-gray-400">
                   Professional video production workflow for "{outline?.title}"
                 </p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                  Select a module to access individual video production apps: Audio Scripts, Slides/Recording, AI Voiceover, and TV Voiceover
+                </p>
               </div>
             </div>
           </div>
+
+          {/* Video Production Apps Overview */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Available Video Production Apps</CardTitle>
+              <CardDescription>
+                Each module provides access to 4 specialized video production tools
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <MessageSquare className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+                  <h4 className="font-medium text-sm">Audio Scripts</h4>
+                  <p className="text-xs text-gray-500">Generate voiceover scripts</p>
+                </div>
+                <div className="text-center">
+                  <Presentation className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                  <h4 className="font-medium text-sm">Slides/Recording</h4>
+                  <p className="text-xs text-gray-500">Create slide presentations</p>
+                </div>
+                <div className="text-center">
+                  <Bot className="w-6 h-6 text-purple-500 mx-auto mb-2" />
+                  <h4 className="font-medium text-sm">AI Voiceover</h4>
+                  <p className="text-xs text-gray-500">Generate AI voice narration</p>
+                </div>
+                <div className="text-center">
+                  <Tv className="w-6 h-6 text-orange-500 mx-auto mb-2" />
+                  <h4 className="font-medium text-sm">TV Voiceover</h4>
+                  <p className="text-xs text-gray-500">Professional TV-style production</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {modules.map((module: any, index: number) => {
@@ -130,8 +167,13 @@ export default function VideoProducer() {
                         className="w-full"
                         disabled={!hasContent}
                       >
-                        {hasContent ? 'Start Production' : 'Generate Content First'}
+                        {hasContent ? 'Access Video Apps' : 'Generate Content First'}
                       </Button>
+                      {hasContent && (
+                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          • Audio Scripts • Slides/Recording • AI Voiceover • TV Voiceover
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

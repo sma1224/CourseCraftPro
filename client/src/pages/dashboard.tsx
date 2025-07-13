@@ -89,6 +89,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleOpenVideoProducer = async (projectId: number) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/outlines/active`);
+      if (response.ok) {
+        const outlineData = await response.json();
+        navigate(`/video-producer/${outlineData.id}`);
+      } else {
+        toast({
+          title: "No outline found",
+          description: "This project doesn't have a saved outline yet.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load outline. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Save edited outline mutation
   const saveOutlineMutation = useMutation({
     mutationFn: async (editedOutline: any) => {
@@ -367,9 +389,8 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/video-producer/${project.outlineId}`)}
+                            onClick={() => handleOpenVideoProducer(project.id)}
                             className="text-purple-600 hover:text-purple-700"
-                            disabled={!project.outlineId}
                           >
                             Video Producer
                           </Button>
