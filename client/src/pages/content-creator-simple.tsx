@@ -15,6 +15,10 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import RichTextEditor from "@/components/editor/rich-text-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SmartGeneratorPanel from "@/components/content/smart-generator-panel";
+import AudioScriptGenerator from "@/components/video-producer/audio-script-generator";
+import SlidesGenerator from "@/components/video-producer/slides-generator";
+import AIVideoGenerator from "@/components/video-producer/ai-video-generator";
+import TVVideoGenerator from "@/components/video-producer/tv-video-generator";
 
 // Helper function to extract readable content from module content JSON
 const extractContentForDisplay = (moduleContent: any): string => {
@@ -569,109 +573,73 @@ export default function ContentCreator() {
                   
                   {/* Audio Scripts Tab */}
                   <TabsContent value="audio" className="flex-1 overflow-hidden mt-4">
-                    <div className="h-full border rounded-lg p-6">
-                      <div className="text-center py-8">
-                        <MessageSquare className="mx-auto h-12 w-12 text-blue-500 mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">Audio Script Generation</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          Generate audio-only versions for podcast-style learning or offline access
-                        </p>
-                        <div className="space-y-4">
-                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                            <h4 className="font-medium mb-2">Features:</h4>
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              <li>• Generate clean, adapted audio scripts</li>
-                              <li>• Use AI tools to generate or record voice</li>
-                              <li>• Export audio scripts (text format)</li>
-                            </ul>
-                          </div>
-                          <Button className="w-full" disabled>
-                            Generate Audio Script
-                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="h-full border rounded-lg">
+                      <AudioScriptGenerator
+                        moduleContent={selectedModule.content}
+                        moduleTitle={selectedModule.title}
+                        courseTitle={outlineData?.title || ''}
+                        onScriptGenerated={(script) => {
+                          console.log('Audio script generated:', script);
+                          toast({
+                            title: "Script Generated",
+                            description: "Audio script has been generated successfully.",
+                          });
+                        }}
+                      />
                     </div>
                   </TabsContent>
                   
                   {/* Slides/Recording Tab */}
                   <TabsContent value="slides" className="flex-1 overflow-hidden mt-4">
-                    <div className="h-full border rounded-lg p-6">
-                      <div className="text-center py-8">
-                        <Eye className="mx-auto h-12 w-12 text-green-500 mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">Slides & Screen Recording</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          Create engaging slide decks or record on-screen demonstrations
-                        </p>
-                        <div className="space-y-4">
-                          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                            <h4 className="font-medium mb-2">Features:</h4>
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              <li>• Create engaging slide decks</li>
-                              <li>• Sync voiceover or add subtitles</li>
-                              <li>• Record on-screen demonstrations</li>
-                            </ul>
-                          </div>
-                          <Button className="w-full" disabled>
-                            Create Slides
-                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="h-full border rounded-lg">
+                      <SlidesGenerator
+                        moduleContent={selectedModule.content}
+                        moduleTitle={selectedModule.title}
+                        courseTitle={outlineData?.title || ''}
+                        onSlidesGenerated={(slides) => {
+                          console.log('Slides generated:', slides);
+                          toast({
+                            title: "Slides Generated",
+                            description: "Slide deck has been generated successfully.",
+                          });
+                        }}
+                      />
                     </div>
                   </TabsContent>
                   
                   {/* AI Voiceover Tab */}
                   <TabsContent value="video-ai" className="flex-1 overflow-hidden mt-4">
-                    <div className="h-full border rounded-lg p-6">
-                      <div className="text-center py-8">
-                        <Bot className="mx-auto h-12 w-12 text-purple-500 mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">AI Voiceover Video Creation</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          Turn lesson scripts into instructional videos with AI-generated voiceover
-                        </p>
-                        <div className="space-y-4">
-                          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                            <h4 className="font-medium mb-2">Features:</h4>
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              <li>• Use AI tools for generated videos</li>
-                              <li>• Create scenes/slides for visual storytelling</li>
-                              <li>• Auto-generated voiceover narration</li>
-                            </ul>
-                          </div>
-                          <Button className="w-full" disabled>
-                            Generate AI Video
-                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="h-full border rounded-lg">
+                      <AIVideoGenerator
+                        moduleContent={selectedModule.content}
+                        moduleTitle={selectedModule.title}
+                        courseTitle={outlineData?.title || ''}
+                        onVideoGenerated={(video) => {
+                          console.log('AI video generated:', video);
+                          toast({
+                            title: "Video Generated",
+                            description: "AI video has been generated successfully.",
+                          });
+                        }}
+                      />
                     </div>
                   </TabsContent>
                   
                   {/* TV Voiceover Tab */}
                   <TabsContent value="video-tv" className="flex-1 overflow-hidden mt-4">
-                    <div className="h-full border rounded-lg p-6">
-                      <div className="text-center py-8">
-                        <BookOpen className="mx-auto h-12 w-12 text-indigo-500 mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">TV Voiceover Video Creation</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          Create professional videos with human-like TV voiceover narration
-                        </p>
-                        <div className="space-y-4">
-                          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
-                            <h4 className="font-medium mb-2">Features:</h4>
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              <li>• Professional TV-quality voiceover</li>
-                              <li>• Create scenes/slides for visual storytelling</li>
-                              <li>• High-quality instructional videos</li>
-                            </ul>
-                          </div>
-                          <Button className="w-full" disabled>
-                            Generate TV Video
-                            <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Coming Soon</span>
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="h-full border rounded-lg">
+                      <TVVideoGenerator
+                        moduleContent={selectedModule.content}
+                        moduleTitle={selectedModule.title}
+                        courseTitle={outlineData?.title || ''}
+                        onVideoGenerated={(video) => {
+                          console.log('TV video generated:', video);
+                          toast({
+                            title: "Video Generated",
+                            description: "TV-quality video has been generated successfully.",
+                          });
+                        }}
+                      />
                     </div>
                   </TabsContent>
                 </Tabs>

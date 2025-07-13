@@ -364,6 +364,15 @@ export default function Dashboard() {
                           >
                             View Outline
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/video-producer/${project.outlineId}`)}
+                            className="text-purple-600 hover:text-purple-700"
+                            disabled={!project.outlineId}
+                          >
+                            Video Producer
+                          </Button>
                           {getStatusBadge(project.status)}
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             {formatTimeAgo(project.updatedAt || project.createdAt || new Date().toISOString())}

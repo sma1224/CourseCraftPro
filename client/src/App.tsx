@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import CourseGenerator from "@/pages/course-generator";
 import OutlineViewer from "@/pages/outline-viewer";
 import ContentCreator from "@/pages/content-creator-simple";
+import VideoProducer from "@/pages/video-producer";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,7 +26,7 @@ function Router() {
           <Route path="/outline-generator" component={CourseGenerator} />
           <Route path="/outline/:id" component={OutlineViewer} />
           <Route path="/content-creator/:outlineId" component={ContentCreator} />
-          <Route path="/video-producer" component={NotFound} />
+          <Route path="/video-producer/:outlineId" component={VideoProducer} />
           <Route path="/assessment-builder" component={NotFound} />
           <Route path="/resource-manager" component={NotFound} />
           <Route path="/analytics" component={NotFound} />

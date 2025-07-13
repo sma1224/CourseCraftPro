@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Users, BookOpen, Target, CheckCircle, FileText, Link, Edit } from "lucide-react";
+import { Clock, Users, BookOpen, Target, CheckCircle, FileText, Link, Edit, Video } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { apiRequest } from "@/lib/queryClient";
@@ -105,6 +105,14 @@ export default function OutlineViewer() {
               >
                 <Edit className="h-4 w-4" />
                 Content Creator
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/video-producer/${id}`)}
+                className="flex items-center gap-2 text-purple-600 hover:text-purple-700"
+              >
+                <Video className="h-4 w-4" />
+                Video Producer
               </Button>
               <Button onClick={() => setIsEditModalOpen(true)}>
                 <Edit className="h-4 w-4 mr-2" />
