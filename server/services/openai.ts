@@ -60,17 +60,35 @@ export async function generateCourseOutline(request: CourseGenerationRequest): P
       throw new Error("OpenAI API key not found in environment variables");
     }
     
-    const systemPrompt = `You are an expert instructional designer with deep subject matter expertise across all fields. Your task is to create comprehensive, professional course outlines that demonstrate deep knowledge of the specific subject matter.
+    const systemPrompt = `You are a world-class subject matter expert and instructional designer with deep, specialized knowledge across all technical and professional fields. Your task is to create exceptionally detailed, professional course outlines that demonstrate expert-level understanding of the specific domain.
 
-CRITICAL REQUIREMENTS:
-1. You must demonstrate deep subject matter expertise by including specific concepts, terminology, tools, and industry practices
-2. Every lesson must contain concrete, actionable content with real-world applications
-3. Include specific examples, case studies, and practical exercises relevant to the subject
-4. Reference actual tools, technologies, methodologies, and industry standards
-5. Provide detailed learning objectives that go beyond generic statements
-6. Include subject-specific resources, readings, and materials
+MANDATORY REQUIREMENTS - FAILURE TO MEET THESE WILL RESULT IN REJECTION:
 
-You will receive a course description and create a detailed, structured course outline that shows you understand the subject deeply. Do not create generic templates - create subject-specific, expert-level content.
+1. DEEP SUBJECT MATTER EXPERTISE:
+   - Include specific technical concepts, terminology, and methodologies used by professionals in the field
+   - Reference actual tools, software, frameworks, platforms, and technologies by name
+   - Mention specific industry standards, certifications, compliance requirements, and best practices
+   - Include current trends, emerging technologies, and future developments in the field
+
+2. CONCRETE REAL-WORLD CONTENT:
+   - Provide specific examples from actual companies, case studies, and industry scenarios
+   - Include hands-on exercises using real tools and professional workflows
+   - Reference actual documentation, APIs, libraries, and resources professionals use
+   - Mention specific job roles, responsibilities, and career paths in the field
+
+3. PROFESSIONAL DEPTH AND DETAIL:
+   - Every lesson must contain detailed, actionable content that goes beyond basic concepts
+   - Include practical exercises that mirror real professional tasks
+   - Provide specific learning outcomes that align with industry requirements
+   - Reference actual certifications, qualifications, and professional development paths
+
+4. INDUSTRY-SPECIFIC CONTEXT:
+   - Include regulatory requirements, compliance standards, and legal considerations
+   - Reference specific use cases across different industries and sectors
+   - Mention integration patterns, enterprise considerations, and scalability concerns
+   - Include cost considerations, ROI calculations, and business impact metrics
+
+QUALITY BENCHMARK: Your course outline should be detailed enough that a professional in the field would immediately recognize the authentic, expert-level content and find it valuable for their career development.
 
 Please respond with a JSON object following this exact structure:
 {
@@ -88,11 +106,11 @@ Please respond with a JSON object following this exact structure:
       "learningObjectives": ["Module objective 1", ...],
       "lessons": [
         {
-          "title": "Lesson Title (specific to subject matter)",
+          "title": "Lesson Title (must include specific technologies/methodologies)",
           "duration": "Lesson duration",
-          "description": "Detailed lesson description with specific concepts, tools, and techniques to be covered",
-          "activities": ["Subject-specific activity 1", "Hands-on exercise with real tools"],
-          "format": ["Video", "Interactive", "Q&A", "Workshop", "Practical"]
+          "description": "Comprehensive lesson description including: specific tools/technologies to be used, step-by-step implementation details, real-world examples from companies, industry standards covered, and practical outcomes",
+          "activities": ["Hands-on exercise with specific named tools", "Real-world case study analysis", "Professional workflow simulation"],
+          "format": ["Video", "Interactive", "Q&A", "Workshop", "Practical", "Case Study"]
         }
       ],
       "activities": [
@@ -129,7 +147,7 @@ Please respond with a JSON object following this exact structure:
 
 Focus on creating practical, actionable content with clear learning outcomes.`;
 
-    const userPrompt = `Create a comprehensive course outline based on this description:
+    const userPrompt = `Create a comprehensive, expert-level course outline based on this description:
 
 ${request.description}
 
@@ -138,15 +156,45 @@ ${request.targetAudience ? `Target audience: ${request.targetAudience}` : ''}
 ${request.duration ? `Preferred duration: ${request.duration}` : ''}
 ${request.courseType ? `Course type: ${request.courseType}` : ''}
 
-IMPORTANT: This must be a subject-specific course outline that demonstrates deep expertise in the field. Include:
-- Specific technical concepts, terminology, and methodologies
-- Real-world tools, software, frameworks, and industry standards
-- Concrete examples and case studies from the actual field
-- Practical exercises using authentic industry practices
-- Current trends, best practices, and emerging developments
-- Subject-specific resources, readings, and references
+CRITICAL INSTRUCTIONS - YOUR RESPONSE MUST INCLUDE:
 
-Do not create a generic template. Create expert-level content that shows deep understanding of the subject matter.`;
+1. SPECIFIC TECHNICAL DETAILS:
+   - Name exact tools, software, frameworks, libraries, and platforms used in the field
+   - Include specific version numbers, configuration details, and implementation approaches
+   - Reference actual APIs, SDKs, documentation, and technical specifications
+   - Mention specific programming languages, databases, cloud platforms, and infrastructure components
+
+2. REAL INDUSTRY EXAMPLES:
+   - Include specific companies, case studies, and real-world implementations
+   - Reference actual products, services, and business scenarios from the industry
+   - Mention specific market segments, customer types, and business models
+   - Include pricing models, ROI calculations, and business impact metrics
+
+3. PROFESSIONAL DEPTH:
+   - Include specific job titles, roles, and career progression paths
+   - Reference industry certifications, qualifications, and professional development requirements
+   - Mention specific conferences, communities, and professional organizations
+   - Include salary ranges, skill requirements, and market demand data
+
+4. REGULATORY AND COMPLIANCE:
+   - Include specific regulations, compliance standards, and legal requirements
+   - Reference industry bodies, standards organizations, and certification authorities
+   - Mention specific audit requirements, security standards, and governance frameworks
+   - Include data privacy, security, and ethical considerations
+
+5. HANDS-ON PRACTICAL CONTENT:
+   - Include step-by-step implementations using real tools and platforms
+   - Reference actual code examples, configuration files, and deployment procedures
+   - Mention specific troubleshooting scenarios and performance optimization techniques
+   - Include integration patterns, testing strategies, and monitoring approaches
+
+QUALITY REQUIREMENTS:
+- Each lesson must contain at least 5 specific, named tools, technologies, or methodologies
+- Include at least 3 real-world company examples or case studies per module
+- Reference at least 2 industry standards, certifications, or compliance requirements
+- Provide specific, actionable learning outcomes that align with professional job requirements
+
+Create expert-level content that demonstrates deep, authentic knowledge of the subject matter.`;
 
     console.log("=== OpenAI Service: Sending request to OpenAI ===");
     console.log("System prompt length:", systemPrompt.length);
@@ -159,8 +207,8 @@ Do not create a generic template. Create expert-level content that shows deep un
         { role: "user", content: userPrompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.8,
-      max_tokens: 6000,
+      temperature: 0.9,
+      max_tokens: 8000,
     });
 
     console.log("=== OpenAI Service: Received response ===");

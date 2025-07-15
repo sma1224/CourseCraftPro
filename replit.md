@@ -192,6 +192,18 @@ Course Creation Suite is a comprehensive SaaS web application that transforms ho
   - Removed Video Producer from sidebar navigation to prevent 404 errors since it requires outline ID parameter
   - Video Producer now only accessible through project-specific buttons ensuring proper functionality
 
+- July 15, 2025: Completely Overhauled OpenAI Course Generation Prompts for Expert-Level Content
+  - Rewrote system prompts to demand deep subject matter expertise with specific technical details
+  - Enhanced user prompts with mandatory requirements for industry-specific content
+  - Increased token limit from 4000 to 8000 to accommodate more detailed responses
+  - Added requirements for specific tools, frameworks, technologies, and methodologies by name
+  - Implemented demands for real company examples, case studies, and industry scenarios
+  - Added professional depth requirements including certifications, job roles, and career paths
+  - Included regulatory compliance, standards, and governance framework requirements
+  - Enhanced quality benchmarks requiring 5+ specific tools per lesson and 3+ company examples per module
+  - Adjusted temperature to 0.9 for more creative and detailed technical content generation
+  - Course outlines now generate with authentic professional-level content instead of generic templates
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
