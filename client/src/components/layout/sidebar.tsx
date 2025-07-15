@@ -4,7 +4,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   GraduationCap, 
   LayoutDashboard, 
@@ -22,7 +41,11 @@ import {
   Book,
   Clock,
   CheckCircle,
-  Play
+  Play,
+  MoreHorizontal,
+  Trash2,
+  Eye,
+  ExternalLink
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -32,6 +55,10 @@ export default function Sidebar() {
   const { user, isAuthenticated } = useAuth();
   const [location] = useLocation();
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch user projects
   const { data: projects = [] } = useQuery<Project[]>({
@@ -40,8 +67,43 @@ export default function Sidebar() {
     retry: false,
   });
 
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest("DELETE", `/api/projects/${projectId}`);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Course deleted",
+        description: "The course has been successfully deleted.",
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete the course. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLogout = () => {
     window.location.href = "/api/logout";
+  };
+
+  const handleDeleteProject = (project: Project) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProjectMutation.mutate(projectToDelete.id);
+    }
   };
 
   const toggleSection = (sectionName: string) => {
@@ -208,29 +270,59 @@ export default function Sidebar() {
                           </div>
                         ) : (
                           projects.map((project) => (
-                            <Link 
-                              key={project.id} 
-                              href={getProjectAction(section.name, project)}
-                              className="block"
-                            >
-                              <div className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
-                                <Book className="w-4 h-4 mr-2 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium truncate">{project.title}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-500 flex items-center space-x-2">
-                                    <span className="flex items-center">
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      {new Date(project.updatedAt).toLocaleDateString()}
-                                    </span>
-                                    <span className="flex items-center">
-                                      <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
-                                      {project.status}
-                                    </span>
-                                  </div>
+                            <div key={project.id} className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors group">
+                              <Book className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <Link 
+                                href={getProjectAction(section.name, project)}
+                                className="flex-1 min-w-0"
+                              >
+                                <div className="font-medium truncate">{project.title}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-500 flex items-center space-x-2">
+                                  <span className="flex items-center">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {new Date(project.updatedAt).toLocaleDateString()}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                                    {project.status}
+                                  </span>
                                 </div>
-                                <Play className="w-3 h-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </div>
-                            </Link>
+                              </Link>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="ml-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem asChild>
+                                    <Link href={`/outline-viewer/${project.id}`}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Course
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link href={getProjectAction(section.name, project)}>
+                                      <ExternalLink className="w-4 h-4 mr-2" />
+                                      Open in {section.name}
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteProject(project)}
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Course
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           ))
                         )}
                       </div>
@@ -274,6 +366,29 @@ export default function Sidebar() {
           </Button>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{projectToDelete?.title}"? This action cannot be undone.
+              All course content, outlines, and associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteProjectMutation.isPending}
+            >
+              {deleteProjectMutation.isPending ? "Deleting..." : "Delete Course"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
