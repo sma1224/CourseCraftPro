@@ -52,7 +52,14 @@ export interface GeneratedCourseOutline {
 
 export async function generateCourseOutline(request: CourseGenerationRequest): Promise<GeneratedCourseOutline> {
   try {
-    console.log("Starting course outline generation with request:", request);
+    console.log("=== OpenAI Service: Starting course outline generation ===");
+    console.log("Request details:", JSON.stringify(request, null, 2));
+    
+    // Verify API key exists
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key not found in environment variables");
+    }
+    
     const systemPrompt = `You are an expert instructional designer and course creator. Your task is to create comprehensive, professional course outlines that follow pedagogical best practices.
 
 You will receive a course description and create a detailed, structured course outline. The outline should be practical, engaging, and suitable for the target audience.
@@ -125,6 +132,10 @@ ${request.courseType ? `Course type: ${request.courseType}` : ''}
 
 Please create a detailed, professional course outline with multiple modules, clear learning objectives, practical activities, and comprehensive resources.`;
 
+    console.log("=== OpenAI Service: Sending request to OpenAI ===");
+    console.log("System prompt length:", systemPrompt.length);
+    console.log("User prompt:", userPrompt);
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -136,15 +147,39 @@ Please create a detailed, professional course outline with multiple modules, cle
       max_tokens: 4000,
     });
 
+    console.log("=== OpenAI Service: Received response ===");
+    console.log("Response status:", response.choices[0].finish_reason);
+    console.log("Response content length:", response.choices[0].message.content?.length || 0);
+    console.log("Raw response content:", response.choices[0].message.content?.substring(0, 500) + "...");
+
     const result = JSON.parse(response.choices[0].message.content || '{}');
+    console.log("=== OpenAI Service: Parsed result ===");
+    console.log("Result title:", result.title);
+    console.log("Result modules count:", result.modules?.length || 0);
+    console.log("Result structure:", Object.keys(result));
     
     if (!result.title || !result.modules) {
+      console.error("=== OpenAI Service: Invalid response format ===");
+      console.error("Missing title:", !result.title);
+      console.error("Missing modules:", !result.modules);
+      console.error("Full result:", JSON.stringify(result, null, 2));
       throw new Error("Invalid response format from OpenAI");
     }
 
+    console.log("=== OpenAI Service: Successfully generated course outline ===");
+    console.log("Final outline preview:", {
+      title: result.title,
+      moduleCount: result.modules?.length,
+      hasContent: !!result.description
+    });
     return result as GeneratedCourseOutline;
   } catch (error) {
-    console.error("Error generating course outline:", error);
+    console.error("=== OpenAI Service: Error generating course outline ===");
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
+      console.error("Error stack:", error.stack);
+    }
     throw new Error(`Failed to generate course outline: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
