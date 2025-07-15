@@ -4,12 +4,30 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import CourseGeneratorModal from "@/components/course/course-generator-modal";
 import OutlineViewerModal from "@/components/course/outline-viewer-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Book, 
   Users, 
@@ -24,7 +42,10 @@ import {
   GraduationCap,
   Sparkles,
   Layers2 as Layers,
-  MessageSquare
+  MessageSquare,
+  Trash2,
+  Eye,
+  ExternalLink
 } from "lucide-react";
 import { useState } from "react";
 import type { Project } from "@shared/schema";
@@ -40,6 +61,8 @@ export default function Dashboard() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showOutlineViewer, setShowOutlineViewer] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -113,6 +136,42 @@ export default function Dashboard() {
         description: "Failed to load outline. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest("DELETE", `/api/projects/${projectId}`);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Course Deleted",
+        description: "The course has been successfully deleted.",
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    },
+    onError: (error) => {
+      console.error("Delete error:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the course. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteProject = (project: Project) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProjectMutation.mutate(projectToDelete.id);
     }
   };
 
@@ -406,9 +465,32 @@ export default function Dashboard() {
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             {formatTimeAgo(project.updatedAt || project.createdAt || new Date().toISOString())}
                           </span>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewOutline(project.id)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Course
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenVideoProducer(project.id)}>
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Video Producer
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteProject(project)}
+                                className="text-red-600 dark:text-red-400"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Course
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     );
@@ -466,6 +548,29 @@ export default function Dashboard() {
           });
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{projectToDelete?.title}"? This action cannot be undone.
+              All course content, outlines, and associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteProjectMutation.isPending}
+            >
+              {deleteProjectMutation.isPending ? "Deleting..." : "Delete Course"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
