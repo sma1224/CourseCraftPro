@@ -60,9 +60,17 @@ export async function generateCourseOutline(request: CourseGenerationRequest): P
       throw new Error("OpenAI API key not found in environment variables");
     }
     
-    const systemPrompt = `You are an expert instructional designer and course creator. Your task is to create comprehensive, professional course outlines that follow pedagogical best practices.
+    const systemPrompt = `You are an expert instructional designer with deep subject matter expertise across all fields. Your task is to create comprehensive, professional course outlines that demonstrate deep knowledge of the specific subject matter.
 
-You will receive a course description and create a detailed, structured course outline. The outline should be practical, engaging, and suitable for the target audience.
+CRITICAL REQUIREMENTS:
+1. You must demonstrate deep subject matter expertise by including specific concepts, terminology, tools, and industry practices
+2. Every lesson must contain concrete, actionable content with real-world applications
+3. Include specific examples, case studies, and practical exercises relevant to the subject
+4. Reference actual tools, technologies, methodologies, and industry standards
+5. Provide detailed learning objectives that go beyond generic statements
+6. Include subject-specific resources, readings, and materials
+
+You will receive a course description and create a detailed, structured course outline that shows you understand the subject deeply. Do not create generic templates - create subject-specific, expert-level content.
 
 Please respond with a JSON object following this exact structure:
 {
@@ -80,11 +88,11 @@ Please respond with a JSON object following this exact structure:
       "learningObjectives": ["Module objective 1", ...],
       "lessons": [
         {
-          "title": "Lesson Title",
+          "title": "Lesson Title (specific to subject matter)",
           "duration": "Lesson duration",
-          "description": "Lesson description",
-          "activities": ["Activity 1", "Activity 2"],
-          "format": ["Video", "Interactive", "Q&A"]
+          "description": "Detailed lesson description with specific concepts, tools, and techniques to be covered",
+          "activities": ["Subject-specific activity 1", "Hands-on exercise with real tools"],
+          "format": ["Video", "Interactive", "Q&A", "Workshop", "Practical"]
         }
       ],
       "activities": [
@@ -130,7 +138,15 @@ ${request.targetAudience ? `Target audience: ${request.targetAudience}` : ''}
 ${request.duration ? `Preferred duration: ${request.duration}` : ''}
 ${request.courseType ? `Course type: ${request.courseType}` : ''}
 
-Please create a detailed, professional course outline with multiple modules, clear learning objectives, practical activities, and comprehensive resources.`;
+IMPORTANT: This must be a subject-specific course outline that demonstrates deep expertise in the field. Include:
+- Specific technical concepts, terminology, and methodologies
+- Real-world tools, software, frameworks, and industry standards
+- Concrete examples and case studies from the actual field
+- Practical exercises using authentic industry practices
+- Current trends, best practices, and emerging developments
+- Subject-specific resources, readings, and references
+
+Do not create a generic template. Create expert-level content that shows deep understanding of the subject matter.`;
 
     console.log("=== OpenAI Service: Sending request to OpenAI ===");
     console.log("System prompt length:", systemPrompt.length);
@@ -143,8 +159,8 @@ Please create a detailed, professional course outline with multiple modules, cle
         { role: "user", content: userPrompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 4000,
+      temperature: 0.8,
+      max_tokens: 6000,
     });
 
     console.log("=== OpenAI Service: Received response ===");
