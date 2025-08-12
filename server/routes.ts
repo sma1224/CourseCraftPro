@@ -795,7 +795,15 @@ Let's customize the content requirements below to ensure we create valuable, in-
         targetWordCount
       } = req.body;
       
-      console.log('Generating comprehensive content for:', { outlineId, moduleIndex, moduleTitle });
+      console.log('Generating comprehensive content for:', { 
+        outlineId, 
+        moduleIndex, 
+        moduleTitle, 
+        detailLevel, 
+        targetWordCount, 
+        requirementsCount: requirements?.length || 0,
+        selectedRequirements: requirements?.filter((r: any) => r.completed)?.map((r: any) => r.id) || []
+      });
       
       // Verify the outline exists and belongs to the user
       const outline = await storage.getCourseOutline(outlineId);
