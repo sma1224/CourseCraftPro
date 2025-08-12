@@ -62,7 +62,14 @@ export async function generateCourseOutline(request: CourseGenerationRequest): P
     
     const systemPrompt = `You are a world-class subject matter expert and instructional designer with deep, specialized knowledge across all technical and professional fields. Your task is to create exceptionally detailed, professional course outlines that demonstrate expert-level understanding of the specific domain.
 
-MANDATORY REQUIREMENTS - FAILURE TO MEET THESE WILL RESULT IN REJECTION:
+MANDATORY COURSE STRUCTURE REQUIREMENTS - FAILURE TO MEET THESE WILL RESULT IN REJECTION:
+
+0. COMPREHENSIVE COURSE LENGTH:
+   - Generate courses with MINIMUM 5-6 modules (prefer 6-8 modules for comprehensive coverage)
+   - Each module should contain 3-5 lessons minimum
+   - Total course duration should be 20-40 hours for professional depth
+   - Avoid short 2-3 module courses as they are insufficient for professional training
+   - Create substantial, university-level or professional certification equivalent content
 
 1. DEEP SUBJECT MATTER EXPERTISE:
    - Include specific technical concepts, terminology, and methodologies used by professionals in the field
@@ -153,10 +160,20 @@ ${request.description}
 
 ${request.title ? `Preferred title: ${request.title}` : ''}
 ${request.targetAudience ? `Target audience: ${request.targetAudience}` : ''}
-${request.duration ? `Preferred duration: ${request.duration}` : ''}
-${request.courseType ? `Course type: ${request.courseType}` : ''}
+${request.duration ? `Preferred duration: ${request.duration}` : 'Duration: 20-40 hours (comprehensive professional training)'}
+${request.courseType ? `Course type: ${request.courseType}` : 'Course type: Professional certification-level training'}
+
+MANDATORY STRUCTURE: Create a course with MINIMUM 5-6 modules (preferably 6-8 modules) to ensure comprehensive coverage. Each module should have 3-5 detailed lessons. Avoid short 2-3 module courses as they are insufficient for professional development.
 
 CRITICAL INSTRUCTIONS - YOUR RESPONSE MUST INCLUDE:
+
+0. COMPREHENSIVE COURSE STRUCTURE:
+   - Create MINIMUM 5-6 modules (aim for 6-8 modules for thorough coverage)
+   - Each module must have 3-5 lessons minimum with substantial content
+   - Structure the course as a comprehensive professional training program
+   - Ensure logical progression from foundational to advanced concepts
+   - Include prerequisite knowledge, intermediate concepts, and advanced applications
+   - Design for 20-40 total hours of professional-level education
 
 1. SPECIFIC TECHNICAL DETAILS:
    - Name exact tools, software, frameworks, libraries, and platforms used in the field
@@ -189,12 +206,16 @@ CRITICAL INSTRUCTIONS - YOUR RESPONSE MUST INCLUDE:
    - Include integration patterns, testing strategies, and monitoring approaches
 
 QUALITY REQUIREMENTS:
+- Generate MINIMUM 5-6 modules with comprehensive coverage (prefer 6-8 modules)
+- Each module must have 3-5 lessons with substantial, detailed content
 - Each lesson must contain at least 5 specific, named tools, technologies, or methodologies
 - Include at least 3 real-world company examples or case studies per module
 - Reference at least 2 industry standards, certifications, or compliance requirements
 - Provide specific, actionable learning outcomes that align with professional job requirements
+- Total course should be equivalent to a university course or professional certification program
+- Ensure 20-40 hours of comprehensive professional training content
 
-Create expert-level content that demonstrates deep, authentic knowledge of the subject matter.`;
+Create expert-level content that demonstrates deep, authentic knowledge of the subject matter with comprehensive coverage that justifies the investment in professional development.`;
 
     console.log("=== OpenAI Service: Sending request to OpenAI ===");
     console.log("System prompt length:", systemPrompt.length);
@@ -208,7 +229,7 @@ Create expert-level content that demonstrates deep, authentic knowledge of the s
       ],
       response_format: { type: "json_object" },
       temperature: 0.9,
-      max_tokens: 8000,
+      max_tokens: 12000,
     });
 
     console.log("=== OpenAI Service: Received response ===");
