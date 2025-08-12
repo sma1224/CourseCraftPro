@@ -378,12 +378,10 @@ export default function OutlineViewer() {
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           outline={courseData}
+          isSaving={false}
           onSave={async (updatedOutline) => {
             try {
-              await apiRequest(`/api/course-outlines/${id}`, {
-                method: 'PATCH',
-                body: JSON.stringify(updatedOutline),
-              });
+              await apiRequest('PATCH', `/api/course-outlines/${id}`, updatedOutline);
               toast({
                 title: "Success",
                 description: "Outline updated successfully",

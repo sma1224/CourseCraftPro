@@ -95,7 +95,7 @@ export default function OutlineViewerModal({
 }: OutlineViewerModalProps) {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState(0);
   const [editMode, setEditMode] = useState(false);
-  const [editedOutline, setEditedOutline] = useState(outline);
+  const [editedOutline, setEditedOutline] = useState(outline || {});
   const [showAIPrompt, setShowAIPrompt] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const { toast } = useToast();
@@ -126,7 +126,14 @@ export default function OutlineViewerModal({
     }
   };
 
-  const selectedModule = editMode ? editedOutline.modules[selectedModuleIndex] : outline.modules[selectedModuleIndex];
+  // Add safety checks for undefined outline or missing modules
+  if (!outline || !outline.modules || outline.modules.length === 0) {
+    return null;
+  }
+
+  const selectedModule = editMode ? 
+    (editedOutline?.modules?.[selectedModuleIndex]) : 
+    (outline.modules[selectedModuleIndex]);
 
   const handleExportMarkdown = () => {
     try {
@@ -357,8 +364,8 @@ export default function OutlineViewerModal({
                 </div>
               ) : (
                 <div>
-                  <DialogTitle className="text-2xl font-bold">{outline.title}</DialogTitle>
-                  <p className="text-gray-600 mt-1">{outline.description}</p>
+                  <DialogTitle className="text-2xl font-bold">{outline?.title || "Course Outline"}</DialogTitle>
+                  <p className="text-gray-600 mt-1">{outline?.description || ""}</p>
                 </div>
               )}
             </div>
@@ -547,11 +554,11 @@ export default function OutlineViewerModal({
                       </div>
                       <span className="flex items-center">
                         <Users className="h-4 w-4 mr-1" />
-                        Target: {outline.targetAudience}
+                        Target: {outline?.targetAudience || "Not specified"}
                       </span>
                       <span className="flex items-center">
                         <Target className="h-4 w-4 mr-1" />
-                        Format: {outline.courseType}
+                        Format: {outline?.courseType || "Not specified"}
                       </span>
                     </div>
                     <div className="border rounded-lg min-h-[120px]">
@@ -575,11 +582,11 @@ export default function OutlineViewerModal({
                       </span>
                       <span className="flex items-center">
                         <Users className="h-4 w-4 mr-1" />
-                        Target: {outline.targetAudience}
+                        Target: {outline?.targetAudience || "Not specified"}
                       </span>
                       <span className="flex items-center">
                         <Target className="h-4 w-4 mr-1" />
-                        Format: {outline.courseType}
+                        Format: {outline?.courseType || "Not specified"}
                       </span>
                     </div>
                     <p className="text-blue-800 dark:text-blue-200">{selectedModule.description}</p>
