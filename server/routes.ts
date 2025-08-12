@@ -257,6 +257,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a course outline directly by ID
+  app.patch('/api/course-outlines/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.id);
+      
+      // Get the outline and verify ownership through project
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Course outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Update the outline with the complete data
+      const updates = {
+        title: req.body.title || outline.title,
+        content: req.body,
+      };
+      
+      const updatedOutline = await storage.updateCourseOutline(outlineId, updates);
+      res.json(updatedOutline);
+    } catch (error) {
+      console.error("Error updating course outline:", error);
+      res.status(500).json({ message: "Failed to update course outline" });
+    }
+  });
+
   // Direct course outline access endpoints
   app.get('/api/course-outlines/:id', isAuthenticated, async (req: any, res) => {
     try {
