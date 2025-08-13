@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -129,6 +129,31 @@ export default function LessonContentGeneratorModal({
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
   const [currentPhase, setCurrentPhase] = useState("requirements");
+  const [generatedContent, setGeneratedContent] = useState<string>("");
+
+  // Fetch existing lesson content
+  const { data: existingLessonContent, isLoading: contentLoading } = useQuery({
+    queryKey: [`/api/outlines/${outlineId}/lessons`],
+    enabled: isOpen && !!outlineId,
+    retry: false,
+  });
+
+  // Get the specific lesson content
+  const currentLessonContent = existingLessonContent?.find(
+    (lc: any) => lc.lessonIndex === lessonIndex
+  );
+
+  // Set generated content when available
+  useEffect(() => {
+    if (currentLessonContent?.content) {
+      setGeneratedContent(typeof currentLessonContent.content === 'string' 
+        ? currentLessonContent.content 
+        : JSON.stringify(currentLessonContent.content, null, 2));
+      if (activeTab === "requirements" && currentLessonContent.content) {
+        setActiveTab("review");
+      }
+    }
+  }, [currentLessonContent, activeTab]);
 
   // Generate lesson content mutation
   const generateContentMutation = useMutation({
@@ -152,8 +177,10 @@ export default function LessonContentGeneratorModal({
         title: "Content Generated Successfully",
         description: `Lesson content has been created for "${lessonTitle}".`,
       });
+      setGeneratedContent(data.content || "");
       setActiveTab("review");
       if (onSuccess) onSuccess();
+      queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/lessons`] });
     },
     onError: (error) => {
       console.error('Error generating lesson content:', error);
@@ -451,29 +478,77 @@ export default function LessonContentGeneratorModal({
             <TabsContent value="review" className="h-full">
               <Card className="h-full">
                 <CardHeader>
-                  <CardTitle>Content Review</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Generated Content Review</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {generatedContent.length} characters
+                    </Badge>
+                  </CardTitle>
                   <CardDescription>
-                    Your lesson content has been generated and saved
+                    Review and edit your generated lesson content
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="h-[420px] flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-medium">Content Successfully Generated</h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        Your lesson "{lessonTitle}" now has comprehensive educational content.
-                      </p>
-                      <div className="flex justify-center gap-2 mt-4">
-                        <Button variant="outline" onClick={onClose}>
-                          Close
-                        </Button>
-                        <Button onClick={() => setActiveTab("requirements")}>
-                          Generate Again
+                <CardContent className="h-[420px]">
+                  {contentLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <LoadingSpinner />
+                    </div>
+                  ) : generatedContent ? (
+                    <div className="space-y-4 h-full">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className="text-sm font-medium">Content Generated</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setActiveTab("requirements")}
+                          >
+                            Regenerate
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={onClose}>
+                            Close
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <ScrollArea className="h-[340px] border rounded-lg p-4">
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <div className="whitespace-pre-wrap font-mono text-sm">
+                            {generatedContent}
+                          </div>
+                        </div>
+                      </ScrollArea>
+                      
+                      <div className="flex gap-2">
+                        <Textarea
+                          placeholder="Add notes or request changes..."
+                          className="flex-1"
+                          rows={2}
+                        />
+                        <Button size="sm" className="self-end">
+                          Save Notes
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center space-y-4">
+                        <FileText className="h-16 w-16 text-gray-400 mx-auto" />
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-medium">No Content Yet</h3>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            Generate content for this lesson to see it here.
+                          </p>
+                          <Button onClick={() => setActiveTab("requirements")}>
+                            Generate Content
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -30,6 +30,7 @@ import {
   PlayCircle
 } from "lucide-react";
 import LessonContentGeneratorModal from "@/components/content/lesson-content-generator-modal";
+import LessonContentViewer from "@/components/content/lesson-content-viewer";
 
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
@@ -45,6 +46,7 @@ export default function ContentCreator() {
     description: string;
   } | null>(null);
   const [showLessonGenerator, setShowLessonGenerator] = useState(false);
+  const [showLessonViewer, setShowLessonViewer] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
 
   // Redirect if not authenticated
@@ -166,6 +168,16 @@ export default function ContentCreator() {
       description: lesson.description || lesson.content || ''
     });
     setShowLessonGenerator(true);
+  };
+
+  const handleViewLesson = (moduleIndex: number, lessonIndex: number, lesson: any) => {
+    setSelectedLesson({
+      moduleIndex,
+      lessonIndex,
+      title: lesson.title,
+      description: lesson.description || lesson.content || ''
+    });
+    setShowLessonViewer(true);
   };
 
   return (
@@ -346,15 +358,26 @@ export default function ContentCreator() {
                                         </Badge>
                                         
                                         {hasContent ? (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleGenerateLesson(moduleIndex, lessonIndex, lesson)}
-                                            className="flex items-center gap-2"
-                                          >
-                                            <Edit className="h-3 w-3" />
-                                            Edit Content
-                                          </Button>
+                                          <div className="flex gap-2">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleViewLesson(moduleIndex, lessonIndex, lesson)}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <FileText className="h-3 w-3" />
+                                              View
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleGenerateLesson(moduleIndex, lessonIndex, lesson)}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <Edit className="h-3 w-3" />
+                                              Edit
+                                            </Button>
+                                          </div>
                                         ) : (
                                           <Button
                                             onClick={() => handleGenerateLesson(moduleIndex, lessonIndex, lesson)}
@@ -402,6 +425,25 @@ export default function ContentCreator() {
           courseDescription={outlineData.description}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/lessons`] });
+          }}
+        />
+      )}
+
+      {/* Lesson Content Viewer Modal */}
+      {showLessonViewer && selectedLesson && (
+        <LessonContentViewer
+          isOpen={showLessonViewer}
+          onClose={() => {
+            setShowLessonViewer(false);
+            setSelectedLesson(null);
+          }}
+          outlineId={parseInt(outlineId!)}
+          moduleIndex={selectedLesson.moduleIndex}
+          lessonIndex={selectedLesson.lessonIndex}
+          lessonTitle={selectedLesson.title}
+          onEdit={() => {
+            setShowLessonViewer(false);
+            setShowLessonGenerator(true);
           }}
         />
       )}
