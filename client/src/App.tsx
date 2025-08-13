@@ -9,7 +9,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import CourseGenerator from "@/pages/course-generator";
 import OutlineViewer from "@/pages/outline-viewer";
-import ContentCreator from "@/pages/content-creator-simple";
+import ContentCreator from "@/pages/content-creator";
 import VideoProducer from "@/pages/video-producer";
 import AssessmentBuilder from "@/pages/assessment-builder";
 import ResourceManager from "@/pages/resource-manager";
