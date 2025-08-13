@@ -1,0 +1,38 @@
+WebSocket connection to 'wss://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit.dev/?token=mq91WJyeBgkd' failed: 
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=mq91WJyeBgkd' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+chunk-WERSD76P.js?v=80584369:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+content-creator.tsx:368 Uncaught ReferenceError: FileText is not defined
+    at content-creator.tsx:368:48
+    at Array.map (<anonymous>)
+    at content-creator.tsx:329:44
+    at Array.map (<anonymous>)
+    at ContentCreator (content-creator.tsx:292:26)
+content-creator.tsx:368 Uncaught ReferenceError: FileText is not defined
+    at content-creator.tsx:368:48
+    at Array.map (<anonymous>)
+    at content-creator.tsx:329:44
+    at Array.map (<anonymous>)
+    at ContentCreator (content-creator.tsx:292:26)
+
+chunk-WERSD76P.js?v=80584369:14032 The above error occurred in the <ContentCreator> component:
+
+    at ContentCreator (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit.dev/src/pages/content-creator.tsx:49:25)
+    at Route (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=80584369:191:16)
+    at Switch (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=80584369:247:17)
+    at Router (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit.dev/src/App.tsx?v=DzomFHLrMzhKCPqNGoqcF:36:42)
+    at Provider (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-PLT6GTVM.js?v=80584369:38:15)
+    at TooltipProvider (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=80584369:64:5)
+    at QueryClientProvider (https://de7bd2f1-7d7a-4cbf-b432-e3dc3586dac1-00-2ma7dhflvgwwv.picard.replit…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=80584369:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-WERSD76P.js?v=80584369:9129 Uncaught ReferenceError: FileText is not defined
+    at content-creator.tsx:368:48
+    at Array.map (<anonymous>)
+    at content-creator.tsx:329:44
+    at Array.map (<anonymous>)
+    at ContentCreator (content-creator.tsx:292:26)

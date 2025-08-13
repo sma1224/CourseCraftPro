@@ -24,6 +24,7 @@ import {
   Circle, 
   AlertCircle, 
   Edit, 
+  FileText,
   ChevronDown, 
   ChevronRight,
   Sparkles,
