@@ -8,13 +8,28 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { ArrowLeft, BookOpen, Clock, Users, Target, CheckCircle, Circle, AlertCircle, Edit } from "lucide-react";
-// Import components will be loaded inline to avoid import issues
+import { 
+  ArrowLeft, 
+  BookOpen, 
+  Clock, 
+  Users, 
+  Target, 
+  CheckCircle, 
+  Circle, 
+  AlertCircle, 
+  Edit, 
+  ChevronDown, 
+  ChevronRight,
+  Sparkles,
+  PlayCircle
+} from "lucide-react";
+import LessonContentGeneratorModal from "@/components/content/lesson-content-generator-modal";
 
 export default function ContentCreator() {
   const { outlineId } = useParams<{ outlineId: string }>();
@@ -23,8 +38,14 @@ export default function ContentCreator() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
-  const [showContentGenerator, setShowContentGenerator] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<{
+    moduleIndex: number;
+    lessonIndex: number;
+    title: string;
+    description: string;
+  } | null>(null);
+  const [showLessonGenerator, setShowLessonGenerator] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -48,101 +69,57 @@ export default function ContentCreator() {
     retry: false,
   });
 
-  // Initialize module contents
-  const initializeContentsMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/course-outlines/${outlineId}/initialize-content`, {});
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/course-outlines/${outlineId}/module-contents`] });
-      toast({
-        title: "Content Creator Initialized",
-        description: "Module content tracking has been set up for your course.",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Initialization Failed",
-        description: "Failed to initialize content creator. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Fetch module contents
-  const { data: moduleContents, isLoading: contentsLoading } = useQuery({
-    queryKey: [`/api/outlines/${outlineId}/module-contents`],
+  // Fetch lesson contents for all modules
+  const { data: lessonContents = [], isLoading: lessonContentsLoading } = useQuery({
+    queryKey: [`/api/outlines/${outlineId}/lessons`],
     enabled: !!outlineId && isAuthenticated,
     retry: false,
   });
 
-  const isLoading = authLoading || outlineLoading || contentsLoading;
+  const isLoading = outlineLoading || authLoading || lessonContentsLoading;
+
+  // Error handling
+  useEffect(() => {
+    if (outline === null) {
+      toast({
+        title: "Course Not Found",
+        description: "The requested course outline could not be found.",
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+    }
+  }, [outline, navigate, toast]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <LoadingSpinner size="lg" />
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (!outline) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6">
-        <div className="max-w-7xl mx-auto">
-          <Card className="max-w-md mx-auto mt-20">
-            <CardHeader>
-              <CardTitle className="text-red-600">Course Not Found</CardTitle>
-              <CardDescription>
-                The course outline you're looking for doesn't exist or you don't have access to it.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/")}>Return to Dashboard</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return null;
   }
 
-  const outlineData = outline?.content ? JSON.parse(outline.content) : { modules: [] };
-  const modules = Array.isArray(outlineData.modules) ? outlineData.modules : [];
-
-  // Initialize contents if not already done
-  if (!moduleContents && !contentsLoading) {
-    initializeContentsMutation.mutate();
-  }
+  const outlineData = typeof outline.content === 'string' 
+    ? JSON.parse(outline.content) 
+    : outline.content || {};
+  const modules = outlineData.modules || [];
 
   // Calculate progress
-  const completedModules = Array.isArray(moduleContents) ? moduleContents.filter((m: any) => m.status === 'complete').length : 0;
-  const totalModules = modules.length;
-  const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
+  const totalLessons = modules.reduce((acc: number, module: any) => 
+    acc + (module.lessons?.length || 0), 0);
+  const completedLessons = lessonContents.filter((lc: any) => 
+    lc.status === 'complete').length;
+  const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'complete':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'in_progress':
-        return <Circle className="h-4 w-4 text-blue-600" />;
-      case 'needs_review':
-        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
       default:
         return <Circle className="h-4 w-4 text-gray-400" />;
     }
@@ -153,23 +130,53 @@ export default function ContentCreator() {
       case 'complete':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'needs_review':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   };
 
+  const getLessonStatus = (moduleIndex: number, lessonIndex: number) => {
+    const lessonContent = lessonContents.find((lc: any) => 
+      lc.moduleIndex === moduleIndex && lc.lessonIndex === lessonIndex);
+    return lessonContent?.status || 'not_started';
+  };
+
+  const hasLessonContent = (moduleIndex: number, lessonIndex: number) => {
+    const lessonContent = lessonContents.find((lc: any) => 
+      lc.moduleIndex === moduleIndex && lc.lessonIndex === lessonIndex);
+    return !!lessonContent?.content;
+  };
+
+  const toggleModule = (moduleIndex: number) => {
+    const newExpanded = new Set(expandedModules);
+    if (newExpanded.has(moduleIndex)) {
+      newExpanded.delete(moduleIndex);
+    } else {
+      newExpanded.add(moduleIndex);
+    }
+    setExpandedModules(newExpanded);
+  };
+
+  const handleGenerateLesson = (moduleIndex: number, lessonIndex: number, lesson: any) => {
+    setSelectedLesson({
+      moduleIndex,
+      lessonIndex,
+      title: lesson.title,
+      description: lesson.description || lesson.content || ''
+    });
+    setShowLessonGenerator(true);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-7xl mx-auto p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center justify-between mb-6">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -227,24 +234,28 @@ export default function ContentCreator() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Modules Complete</span>
-                      <span>{completedModules}/{totalModules}</span>
+                      <span>Lessons Complete</span>
+                      <span>{completedLessons}/{totalLessons}</span>
                     </div>
                     <Progress value={progressPercentage} className="h-2" />
                   </div>
                   
                   <div className="space-y-2">
-                    {Array.isArray(moduleContents) && moduleContents.map((module: any, index: number) => (
-                      <div key={module.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(module.status)}
-                          <span className="text-sm truncate">Module {index + 1}</span>
+                    {modules.map((module: any, index: number) => {
+                      const moduleLessons = module.lessons || [];
+                      const moduleCompletedLessons = moduleLessons.filter((_: any, lessonIndex: number) => 
+                        getLessonStatus(index, lessonIndex) === 'complete').length;
+                      return (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm truncate">Module {index + 1}</span>
+                          </div>
+                          <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            {moduleCompletedLessons}/{moduleLessons.length}
+                          </Badge>
                         </div>
-                        <Badge className={`text-xs ${getStatusColor(module.status)}`}>
-                          {module.status.replace('_', ' ')}
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>
@@ -252,134 +263,146 @@ export default function ContentCreator() {
           </div>
         </div>
 
-        {/* Module Content Development */}
+        {/* Lesson Content Development */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
-              Module Content Development
+              Lesson Content Development
             </CardTitle>
             <CardDescription>
-              Create detailed content for each module in your course outline
+              Create detailed content for each lesson in your course outline
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overview">Module Overview</TabsTrigger>
-                <TabsTrigger value="content">Content Development</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {modules.map((module: any, index: number) => {
-                    const moduleContent = Array.isArray(moduleContents) ? moduleContents.find((m: any) => m.moduleIndex === index) : undefined;
-                    return (
-                      <ModuleContentCard
-                        key={index}
-                        module={module}
-                        moduleContent={moduleContent}
-                        moduleIndex={index}
-                        outlineId={parseInt(outlineId || '0')}
-                        courseTitle={outline?.title || ''}
-                        courseDescription={outline?.description || ''}
-                        onCreateContent={() => {
-                          setSelectedModuleId(moduleContent?.id || null);
-                          setShowContentGenerator(true);
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="content" className="mt-6">
-                <ScrollArea className="h-[600px]">
-                  <div className="space-y-6">
-                    {modules.map((module: any, index: number) => {
-                      const moduleContent = Array.isArray(moduleContents) ? moduleContents.find((m: any) => m.moduleIndex === index) : undefined;
-                      return (
-                        <div key={index}>
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold">
-                              Module {index + 1}: {module.title}
-                            </h3>
-                            <Badge className={getStatusColor(moduleContent?.status || 'not_started')}>
-                              {moduleContent?.status?.replace('_', ' ') || 'Not Started'}
-                            </Badge>
-                          </div>
-                          
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                            <h4 className="font-medium mb-2">Module Overview</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                              {module.description}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {module.learningObjectives?.map((objective: string, objIndex: number) => (
-                                <Badge key={objIndex} variant="secondary" className="text-xs">
-                                  {objective}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          {moduleContent?.content ? (
-                            <div className="space-y-4">
-                              <h4 className="font-medium">Generated Content</h4>
-                              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border">
-                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                  Content has been generated for this module. Click to edit or enhance.
+            <ScrollArea className="h-[700px]">
+              <div className="space-y-4">
+                {modules.map((module: any, moduleIndex: number) => {
+                  const moduleLessons = module.lessons || [];
+                  const isExpanded = expandedModules.has(moduleIndex);
+                  
+                  return (
+                    <div key={moduleIndex}>
+                      <Collapsible 
+                        open={isExpanded} 
+                        onOpenChange={() => toggleModule(moduleIndex)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            className="w-full justify-between p-4 h-auto bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            <div className="flex items-center gap-3">
+                              {isExpanded ? 
+                                <ChevronDown className="h-4 w-4" /> : 
+                                <ChevronRight className="h-4 w-4" />
+                              }
+                              <div className="text-left">
+                                <h3 className="font-semibold text-lg">
+                                  Module {moduleIndex + 1}: {module.title}
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                  {module.description}
                                 </p>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="mt-3"
-                                  onClick={() => {
-                                    setSelectedModuleId(moduleContent.id);
-                                    setShowContentGenerator(true);
-                                  }}
-                                >
-                                  Edit Content
-                                </Button>
                               </div>
                             </div>
-                          ) : (
-                            <div className="flex items-center justify-center h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                              <Button
-                                onClick={() => {
-                                  setSelectedModuleId(moduleContent?.id || null);
-                                  setShowContentGenerator(true);
-                                }}
-                                className="flex items-center gap-2"
-                              >
-                                <Edit className="h-4 w-4" />
-                                Create Content
-                              </Button>
-                            </div>
-                          )}
-                          
-                          {index < modules.length - 1 && <Separator className="my-6" />}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
+                            <Badge variant="secondary" className="shrink-0">
+                              {moduleLessons.length} lessons
+                            </Badge>
+                          </Button>
+                        </CollapsibleTrigger>
+                        
+                        <CollapsibleContent className="mt-4">
+                          <div className="ml-6 space-y-3">
+                            {moduleLessons.map((lesson: any, lessonIndex: number) => {
+                              const lessonStatus = getLessonStatus(moduleIndex, lessonIndex);
+                              const hasContent = hasLessonContent(moduleIndex, lessonIndex);
+                              
+                              return (
+                                <Card key={lessonIndex} className="bg-white dark:bg-gray-800">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3 flex-1">
+                                        {getStatusIcon(lessonStatus)}
+                                        <div className="flex-1">
+                                          <h4 className="font-medium">
+                                            Lesson {lessonIndex + 1}: {lesson.title}
+                                          </h4>
+                                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                            {lesson.description || lesson.content || 'No description available'}
+                                          </p>
+                                          {lesson.duration && (
+                                            <div className="flex items-center gap-1 mt-2">
+                                              <Clock className="h-3 w-3 text-gray-500" />
+                                              <span className="text-xs text-gray-500">{lesson.duration}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2">
+                                        <Badge className={`text-xs ${getStatusColor(lessonStatus)}`}>
+                                          {lessonStatus.replace('_', ' ')}
+                                        </Badge>
+                                        
+                                        {hasContent ? (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleGenerateLesson(moduleIndex, lessonIndex, lesson)}
+                                            className="flex items-center gap-2"
+                                          >
+                                            <Edit className="h-3 w-3" />
+                                            Edit Content
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            onClick={() => handleGenerateLesson(moduleIndex, lessonIndex, lesson)}
+                                            size="sm"
+                                            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                                          >
+                                            <Sparkles className="h-3 w-3" />
+                                            Smart Generator
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                      
+                      {moduleIndex < modules.length - 1 && <Separator className="my-6" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
 
-      {/* Content Generator Modal */}
-      {showContentGenerator && selectedModuleId && (
-        <ContentGeneratorModal
-          isOpen={showContentGenerator}
+      {/* Lesson Content Generator Modal */}
+      {showLessonGenerator && selectedLesson && (
+        <LessonContentGeneratorModal
+          isOpen={showLessonGenerator}
           onClose={() => {
-            setShowContentGenerator(false);
-            setSelectedModuleId(null);
+            setShowLessonGenerator(false);
+            setSelectedLesson(null);
           }}
-          moduleContentId={selectedModuleId}
           outlineId={parseInt(outlineId!)}
+          moduleIndex={selectedLesson.moduleIndex}
+          lessonIndex={selectedLesson.lessonIndex}
+          lessonTitle={selectedLesson.title}
+          lessonDescription={selectedLesson.description}
+          courseTitle={outline.title}
+          courseDescription={outlineData.description}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: [`/api/outlines/${outlineId}/lessons`] });
+          }}
         />
       )}
     </div>

@@ -1128,5 +1128,192 @@ Write ${wordCount} words minimum with ${contentDetail} level detail. Make this c
     }
   });
 
+  // Generate lesson content
+  app.post('/api/generate-lesson-content', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { 
+        outlineId, 
+        moduleIndex, 
+        lessonIndex,
+        lessonTitle, 
+        lessonDescription, 
+        courseTitle, 
+        courseDescription,
+        requirements,
+        detailLevel,
+        targetWordCount
+      } = req.body;
+      
+      console.log('Generating lesson content for:', { 
+        outlineId, 
+        moduleIndex, 
+        lessonIndex,
+        lessonTitle, 
+        detailLevel, 
+        targetWordCount, 
+        requirementsCount: requirements?.length || 0,
+        selectedRequirements: requirements?.filter((r: any) => r.completed)?.map((r: any) => r.id) || []
+      });
+      
+      // Verify the outline exists and belongs to the user
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Outline not found" });
+      }
+      
+      // Check if user owns the project
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Build system prompt for lesson content generation
+      const systemPrompt = `You are an expert instructional designer creating comprehensive educational lesson content. Create detailed, professional lesson material that provides real educational value.
+
+**CRITICAL FORMATTING REQUIREMENTS:**
+- Use proper markdown formatting with clear headers and subheaders
+- Include line breaks between sections and paragraphs
+- Use ## for main sections, ### for subsections
+- Add blank lines between paragraphs for readability
+- Format as professional lesson courseware reading material
+
+**WORD COUNT REQUIREMENTS:**
+- Target word count: ${targetWordCount || 1000} words MINIMUM
+- Content detail level: ${detailLevel || 'detailed'}
+- ${detailLevel === 'brief' ? 'Generate 300-500 words of concise but complete explanations' : ''}
+- ${detailLevel === 'quick' ? 'Generate 500-800 words with clear explanations and essential details' : ''}
+- ${detailLevel === 'detailed' ? 'Generate 800-1200 words with comprehensive coverage and examples' : ''}
+- ${detailLevel === 'comprehensive' ? 'Generate 1200+ words with in-depth analysis and multiple examples' : ''}
+
+**WRITING REQUIREMENTS:**
+- Write in full paragraphs with academic depth suitable for courseware
+- Each paragraph should be 80-150 words
+- Include real-world examples integrated into the narrative
+- Provide thorough theoretical foundations with practical applications
+- Use transitional sentences to connect ideas smoothly
+- Write as comprehensive educational reading material, not bullet points
+
+**CONTENT REQUIREMENTS:**
+${requirements?.filter((r: any) => r.completed).map((req: any) => `- Include ${req.title.toLowerCase()}`).join('\n') || '- Create comprehensive lesson content'}
+
+Create a complete lesson that includes:
+1. **Learning Objectives** - Clear, measurable outcomes
+2. **Theoretical Foundation** - Core concepts and principles
+3. **Practical Applications** - Real-world implementation examples
+4. **Step-by-step Instructions** - How to apply the concepts
+5. **Case Studies** - Industry examples and scenarios
+6. **Interactive Elements** - Exercises and activities for engagement
+7. **Assessment Questions** - Knowledge checks and practice problems
+8. **Summary Section** - Key takeaways and next steps
+
+Write ${targetWordCount || 1000} words minimum with ${detailLevel || 'detailed'} level detail. Make this lesson valuable courseware for learners who want to master ${lessonTitle}.`;
+
+      const userPrompt = `Course: "${courseTitle}"
+Course Description: ${courseDescription}
+
+Lesson: "${lessonTitle}"
+Lesson Description: ${lessonDescription}
+
+Create comprehensive, educational content for this lesson that:
+- Teaches the concepts thoroughly with clear explanations
+- Provides practical, actionable guidance
+- Includes specific examples and case studies
+- Maintains professional academic writing standards
+- Reaches the target word count through depth, not filler
+
+Focus on making this lesson genuinely valuable for students learning ${lessonTitle} within the context of ${courseTitle}.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 6000,
+        temperature: 0.7,
+      });
+
+      const generatedContent = response.choices[0].message.content;
+      
+      // Create or update lesson content
+      const existingContent = await storage.getModuleLessonContents(outlineId, moduleIndex);
+      const lessonContentRecord = existingContent.find((lc: any) => lc.lessonIndex === lessonIndex);
+      
+      if (lessonContentRecord) {
+        await storage.updateLessonContent(lessonContentRecord.id, {
+          title: lessonTitle,
+          content: generatedContent,
+          status: 'complete'
+        });
+      } else {
+        await storage.createLessonContent({
+          outlineId,
+          moduleIndex,
+          lessonIndex,
+          title: lessonTitle,
+          content: generatedContent,
+          status: 'complete'
+        });
+      }
+      
+      res.json({ success: true, content: generatedContent });
+    } catch (error) {
+      console.error('Error generating lesson content:', error);
+      res.status(500).json({ error: 'Failed to generate lesson content' });
+    }
+  });
+
+  // Get lesson contents for a module
+  app.get('/api/outlines/:outlineId/modules/:moduleIndex/lessons', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.outlineId);
+      const moduleIndex = parseInt(req.params.moduleIndex);
+      
+      // Verify ownership
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const lessonContents = await storage.getModuleLessonContents(outlineId, moduleIndex);
+      res.json(lessonContents);
+    } catch (error) {
+      console.error('Error fetching lesson contents:', error);
+      res.status(500).json({ error: 'Failed to fetch lesson contents' });
+    }
+  });
+
+  // Get all lesson contents for an outline
+  app.get('/api/outlines/:outlineId/lessons', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const outlineId = parseInt(req.params.outlineId);
+      
+      // Verify ownership
+      const outline = await storage.getCourseOutline(outlineId);
+      if (!outline) {
+        return res.status(404).json({ message: "Outline not found" });
+      }
+      
+      const project = await storage.getProject(outline.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const lessonContents = await storage.getOutlineLessonContents(outlineId);
+      res.json(lessonContents);
+    } catch (error) {
+      console.error('Error fetching lesson contents:', error);
+      res.status(500).json({ error: 'Failed to fetch lesson contents' });
+    }
+  });
+
   return httpServer;
 }

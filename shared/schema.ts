@@ -74,6 +74,20 @@ export const moduleContent = pgTable("module_content", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Lesson content table for individual lesson content generation
+export const lessonContent = pgTable("lesson_content", {
+  id: serial("id").primaryKey(),
+  outlineId: integer("outline_id").notNull().references(() => courseOutlines.id, { onDelete: "cascade" }),
+  moduleIndex: integer("module_index").notNull(), // Which module this lesson belongs to (0-based)
+  lessonIndex: integer("lesson_index").notNull(), // Which lesson within the module (0-based)
+  title: text("title").notNull(),
+  status: varchar("status", { enum: ["not_started", "in_progress", "complete", "needs_review"] }).default("not_started"),
+  content: jsonb("content"), // Detailed lesson content, exercises, activities
+  estimatedTime: integer("estimated_time"), // Time in minutes to complete this lesson
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Content generation sessions for tracking AI interactions
 export const contentSessions = pgTable("content_sessions", {
   id: serial("id").primaryKey(),
@@ -103,6 +117,7 @@ export const courseOutlinesRelations = relations(courseOutlines, ({ one, many })
     references: [projects.id],
   }),
   moduleContent: many(moduleContent),
+  lessonContent: many(lessonContent),
 }));
 
 export const moduleContentRelations = relations(moduleContent, ({ one, many }) => ({
@@ -111,6 +126,13 @@ export const moduleContentRelations = relations(moduleContent, ({ one, many }) =
     references: [courseOutlines.id],
   }),
   sessions: many(contentSessions),
+}));
+
+export const lessonContentRelations = relations(lessonContent, ({ one }) => ({
+  outline: one(courseOutlines, {
+    fields: [lessonContent.outlineId],
+    references: [courseOutlines.id],
+  }),
 }));
 
 export const contentSessionsRelations = relations(contentSessions, ({ one }) => ({
@@ -148,6 +170,14 @@ export const insertModuleContentSchema = createInsertSchema(moduleContent).omit(
 
 export const selectModuleContentSchema = createSelectSchema(moduleContent);
 
+export const insertLessonContentSchema = createInsertSchema(lessonContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectLessonContentSchema = createSelectSchema(lessonContent);
+
 export const insertContentSessionSchema = createInsertSchema(contentSessions).omit({
   id: true,
   createdAt: true,
@@ -164,6 +194,8 @@ export type InsertCourseOutline = z.infer<typeof insertCourseOutlineSchema>;
 export type CourseOutline = z.infer<typeof selectCourseOutlineSchema>;
 export type InsertModuleContent = z.infer<typeof insertModuleContentSchema>;
 export type ModuleContent = z.infer<typeof selectModuleContentSchema>;
+export type InsertLessonContent = z.infer<typeof insertLessonContentSchema>;
+export type LessonContent = z.infer<typeof selectLessonContentSchema>;
 export type InsertContentSession = z.infer<typeof insertContentSessionSchema>;
 export type ContentSession = z.infer<typeof selectContentSessionSchema>;
 

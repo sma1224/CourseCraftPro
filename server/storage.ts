@@ -3,6 +3,7 @@ import {
   projects,
   courseOutlines,
   moduleContent,
+  lessonContent,
   contentSessions,
   type User,
   type UpsertUser,
@@ -12,6 +13,8 @@ import {
   type InsertCourseOutline,
   type ModuleContent,
   type InsertModuleContent,
+  type LessonContent,
+  type InsertLessonContent,
   type ContentSession,
   type InsertContentSession,
 } from "@shared/schema";
@@ -43,6 +46,14 @@ export interface IStorage {
   getOutlineModuleContents(outlineId: number): Promise<ModuleContent[]>;
   updateModuleContent(id: number, updates: Partial<InsertModuleContent>): Promise<ModuleContent>;
   initializeModuleContents(outlineId: number, moduleCount: number): Promise<ModuleContent[]>;
+  
+  // Lesson content operations
+  createLessonContent(content: InsertLessonContent): Promise<LessonContent>;
+  getLessonContent(id: number): Promise<LessonContent | undefined>;
+  getModuleLessonContents(outlineId: number, moduleIndex: number): Promise<LessonContent[]>;
+  getOutlineLessonContents(outlineId: number): Promise<LessonContent[]>;
+  updateLessonContent(id: number, updates: Partial<InsertLessonContent>): Promise<LessonContent>;
+  deleteLessonContent(id: number): Promise<void>;
   
   // Content session operations
   createContentSession(session: InsertContentSession): Promise<ContentSession>;
@@ -242,6 +253,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(contentSessions.moduleContentId, moduleContentId))
       .orderBy(desc(contentSessions.createdAt));
     return sessions as ContentSession[];
+  }
+
+  // Lesson content operations
+  async createLessonContent(content: InsertLessonContent): Promise<LessonContent> {
+    const [lessonContentRecord] = await db
+      .insert(lessonContent)
+      .values(content)
+      .returning();
+    return lessonContentRecord as LessonContent;
+  }
+
+  async getLessonContent(id: number): Promise<LessonContent | undefined> {
+    const [content] = await db
+      .select()
+      .from(lessonContent)
+      .where(eq(lessonContent.id, id));
+    return content as LessonContent | undefined;
+  }
+
+  async getModuleLessonContents(outlineId: number, moduleIndex: number): Promise<LessonContent[]> {
+    const contents = await db
+      .select()
+      .from(lessonContent)
+      .where(and(
+        eq(lessonContent.outlineId, outlineId),
+        eq(lessonContent.moduleIndex, moduleIndex)
+      ))
+      .orderBy(lessonContent.lessonIndex);
+    return contents as LessonContent[];
+  }
+
+  async getOutlineLessonContents(outlineId: number): Promise<LessonContent[]> {
+    const contents = await db
+      .select()
+      .from(lessonContent)
+      .where(eq(lessonContent.outlineId, outlineId))
+      .orderBy(lessonContent.moduleIndex, lessonContent.lessonIndex);
+    return contents as LessonContent[];
+  }
+
+  async updateLessonContent(id: number, updates: Partial<InsertLessonContent>): Promise<LessonContent> {
+    const [content] = await db
+      .update(lessonContent)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(lessonContent.id, id))
+      .returning();
+    return content as LessonContent;
+  }
+
+  async deleteLessonContent(id: number): Promise<void> {
+    await db.delete(lessonContent).where(eq(lessonContent.id, id));
   }
 }
 
