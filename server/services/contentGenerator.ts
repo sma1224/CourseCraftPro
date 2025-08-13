@@ -86,16 +86,28 @@ CONTENT INCLUSION RULES (MANDATORY):
 
 FAILURE TO INCLUDE SELECTED CONTENT TYPES WILL RESULT IN REJECTION.
 
+WORD COUNT ENFORCEMENT STRATEGY:
+- Write detailed, comprehensive explanations for each concept
+- Include extensive examples and case studies  
+- Provide in-depth analysis and commentary
+- Add comprehensive background information
+- Include detailed step-by-step instructions
+- Expand on practical applications with multiple scenarios
+- Add extensive context and professional insights
+
 RESPONSE FORMAT:
-You must respond with a valid JSON object containing these exact fields:
+You must respond with a valid JSON object. The "content" field in each lesson MUST contain the actual detailed educational content with the specified word count. Do not use placeholder text or brief summaries.
+
+CRITICAL: The total word count across ALL lesson "content" fields must equal ${request.targetWordCount || 1000} words.
+
 {
   "title": "string",
-  "overview": "string",
+  "overview": "string (100-200 words)",
   "learningObjectives": ["string"],
   "lessons": [
     {
       "title": "string",
-      "content": "string",
+      "content": "DETAILED EDUCATIONAL CONTENT HERE - This field must contain the actual comprehensive lesson content with the required word count, not a summary or placeholder",
       "duration": "string",
       "activities": ["string"],
       "resources": ["string"]
@@ -103,7 +115,7 @@ You must respond with a valid JSON object containing these exact fields:
   ],
   "exercises": [
     {
-      "title": "string",
+      "title": "string", 
       "description": "string",
       "instructions": ["string"],
       "materials": ["string"],
@@ -113,7 +125,7 @@ You must respond with a valid JSON object containing these exact fields:
   "assessments": [
     {
       "type": "string",
-      "title": "string",
+      "title": "string", 
       "questions": [
         {
           "question": "string",
@@ -172,15 +184,25 @@ ${request.selectedRequirements && request.selectedRequirements.length > 0 ?
 
 GENERATE EXACTLY ${request.targetWordCount || 1000} WORDS OF EDUCATIONAL CONTENT NOW.`;
 
+    // Add a third message to reinforce requirements
+    const enforcementPrompt = `CRITICAL REMINDER: You must generate EXACTLY ${request.targetWordCount || 1000} words across all lesson content. This is not a suggestion - it's a requirement. The user has specifically requested this word count and selected specific content types. Failure to follow these specifications exactly will result in rejection.
+
+WORD COUNT VERIFICATION: Count your words as you write and ensure the total equals ${request.targetWordCount || 1000} words.
+CONTENT TYPE VERIFICATION: Include only the content types the user selected: ${request.selectedRequirements?.map((r: any) => r.title).join(', ') || 'standard content'}.
+
+Generate the requested content now with exactly the specified word count and content types.`;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "user", content: userPrompt },
+        { role: "assistant", content: "I understand I must generate exactly the specified word count and include only the selected content types. I will verify my word count and content types before responding." },
+        { role: "user", content: enforcementPrompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 12000,
+      temperature: 0.9,
+      max_tokens: 16000,
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
